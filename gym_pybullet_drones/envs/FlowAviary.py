@@ -31,6 +31,7 @@ class FlowAviary(BaseAviary):
                  neighbourhood_radius: float=np.inf,
                  initial_xyzs=None,
                  initial_rpys=None,
+                 initial_wind=None,
                  physics: Physics=Physics.PYB_AERO,
                  freq: int=240,
                  aggregate_phy_steps: int=1,
@@ -53,6 +54,8 @@ class FlowAviary(BaseAviary):
             (NUM_DRONES, 3)-shaped array containing the initial XYZ position of the drones.
         initial_rpys: ndarray | None, optional
             (NUM_DRONES, 3)-shaped array containing the initial orientations of the drones (in radians).
+        initial_wind: ndarray | None, optional
+            (, 3)-shaped array containing the initial free-stream wind velocity of the environment.        
         physics : Physics, optional
             The desired implementation of PyBullet physics/custom dynamics.
         freq : int, optional
@@ -75,6 +78,7 @@ class FlowAviary(BaseAviary):
                          neighbourhood_radius=neighbourhood_radius,
                          initial_xyzs=initial_xyzs,
                          initial_rpys=initial_rpys,
+                         initial_wind=initial_wind,
                          physics=physics,
                          freq=freq,
                          aggregate_phy_steps=aggregate_phy_steps,
@@ -83,6 +87,9 @@ class FlowAviary(BaseAviary):
                          obstacles=obstacles,
                          user_debug_gui=user_debug_gui
                          )
+        #### Parameters ############################################
+        # Q: not sure if this is the correct implementation of a wind parameter
+        self.wind = initial_wind
 
     ################################################################################
     # Over-writing step function to include custom aero dynamics
