@@ -24,7 +24,7 @@ class FlowAviary(BaseAviary):
     """Multi-drone environment class for flow-sensor wind estimation applications."""
 
     ################################################################################
-
+    # Q: Any issues from adding the initial_wind argument?
     def __init__(self,
                  drone_model: DroneModel=DroneModel.CF2X,
                  num_drones: int=1,
@@ -72,13 +72,14 @@ class FlowAviary(BaseAviary):
             Whether to draw the drones' axes and the GUI RPMs sliders.
 
         """
-        # Q: not sure what this is (super-init?)
+        # Automatically inherit the methods and properties from its parent (BaseAviary)
+        # See inheritance guide: https://www.w3schools.com/python/python_inheritance.asp
+        # Q: Since super, this should contain the same arguments as BaseAviary.
         super().__init__(drone_model=drone_model,
                          num_drones=num_drones,
                          neighbourhood_radius=neighbourhood_radius,
                          initial_xyzs=initial_xyzs,
                          initial_rpys=initial_rpys,
-                         initial_wind=initial_wind,
                          physics=physics,
                          freq=freq,
                          aggregate_phy_steps=aggregate_phy_steps,
@@ -92,7 +93,7 @@ class FlowAviary(BaseAviary):
         self.wind = initial_wind
 
     ################################################################################
-    # Over-writing step function to include custom aero dynamics
+    # Overriding step function to include custom aero dynamics
 
     def step(self,
              action
