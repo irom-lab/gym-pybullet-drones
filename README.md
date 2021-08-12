@@ -1,3 +1,6 @@
+# CREDIT
+The original gym-pybullet-drones code repository was created by the University of Toronto Institute for Aerospace Studies Dynamic Systems Lab (See original repository: https://github.com/utiasDSL/gym-pybullet-drones/).
+
 # NOTE
 This repository's `master` branch is actively developed, please `git pull` frequently and feel free to open new [issues](https://github.com/utiasDSL/gym-pybullet-drones/issues) for any undesired, unexpected, or (presumably) incorrect behavior. Thanks 🙏
 
