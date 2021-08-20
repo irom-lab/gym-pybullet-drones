@@ -40,13 +40,19 @@ class BaseSingleAgentAviary(BaseAviary):
                  drone_model: DroneModel=DroneModel.CF2X,
                  initial_xyzs=None,
                  initial_rpys=None,
+                 fixed_init=False,
                  physics: Physics=Physics.PYB,
                  freq: int=240,
                  aggregate_phy_steps: int=1,
                  gui=False,
-                 record=False, 
+                 record=False,
+                 video_path=None,
                  obs: ObservationType=ObservationType.KIN,
-                 act: ActionType=ActionType.RPM
+                 act: ActionType=ActionType.RPM,
+                 # wind
+                 wind_model='simple',
+                 wind_force=[0,0,0],
+                 use_normalize=False,
                  ):
         """Initialization of a generic single agent RL environment.
 
@@ -83,6 +89,7 @@ class BaseSingleAgentAviary(BaseAviary):
         dynamics_attributes = True if act in [ActionType.DYN, ActionType.ONE_D_DYN] else False
         self.OBS_TYPE = obs
         self.ACT_TYPE = act
+        self.USE_NORMALIZE = use_normalize
         self.EPISODE_LEN_SEC = 5
         #### Create integrated controllers #########################
         if act in [ActionType.PID, ActionType.VEL, ActionType.TUN, ActionType.ONE_D_PID]:
@@ -111,15 +118,19 @@ class BaseSingleAgentAviary(BaseAviary):
                          num_drones=1,
                          initial_xyzs=initial_xyzs,
                          initial_rpys=initial_rpys,
+                         fixed_init=fixed_init,
                          physics=physics, 
                          freq=freq,
                          aggregate_phy_steps=aggregate_phy_steps,
                          gui=gui,
                          record=record, 
+                         video_path=video_path,
                          obstacles=True, # Add obstacles for RGB observations and/or FlyThruGate
                          user_debug_gui=False, # Remove of RPM sliders from all single agent learning aviaries
                          vision_attributes=vision_attributes,
-                         dynamics_attributes=dynamics_attributes
+                         dynamics_attributes=dynamics_attributes,
+                         wind_model=wind_model,
+                         wind_force=wind_force
                          )
         #### Set a limit on the maximum target speed ###############
         if act == ActionType.VEL:
@@ -223,12 +234,16 @@ class BaseSingleAgentAviary(BaseAviary):
                                          )
             return self._trajectoryTrackingRPMs() 
         elif self.ACT_TYPE == ActionType.RPM:
-            return np.array(self.HOVER_RPM * (1+0.05*action))
+            if self.USE_NORMALIZE:
+                return self._normalizedActionToRPM(np.array(action))
+            else:
+                return np.array(self.HOVER_RPM * (1+0.05*action))
         elif self.ACT_TYPE == ActionType.DYN:
-            return nnlsRPM(thrust=(self.GRAVITY*(action[0]+1)),
-                           x_torque=(0.05*self.MAX_XY_TORQUE*action[1]),
-                           y_torque=(0.05*self.MAX_XY_TORQUE*action[2]),
-                           z_torque=(0.05*self.MAX_Z_TORQUE*action[3]),
+            return nnlsRPM(# thrust=(self.GRAVITY*(action[0]+1)), # 0-2G
+                           thrust=(self.GRAVITY*(1+0.05*action[0])),    # 0.95-1.05G
+                           x_torque=(0.01*self.MAX_XY_TORQUE*action[1]),    #? use 0.05 to limit?
+                           y_torque=(0.01*self.MAX_XY_TORQUE*action[2]),
+                           z_torque=(0.01*self.MAX_Z_TORQUE*action[3]),
                            counter=self.step_counter,
                            max_thrust=self.MAX_THRUST,
                            max_xy_torque=self.MAX_XY_TORQUE,
@@ -265,9 +280,12 @@ class BaseSingleAgentAviary(BaseAviary):
                                                  )
             return rpm
         elif self.ACT_TYPE == ActionType.ONE_D_RPM:
-            return np.repeat(self.HOVER_RPM * (1+0.05*action), 4)
+            if self.USE_NORMALIZE:
+                return np.repeat(self._normalizedActionToRPM(action), 4)
+            else:
+                return np.repeat(self.HOVER_RPM * (1+0.05*action), 4)
         elif self.ACT_TYPE == ActionType.ONE_D_DYN:
-            return nnlsRPM(thrust=(self.GRAVITY*(1+0.05*action[0])),
+            return nnlsRPM(thrust=(self.GRAVITY*(1+0.05*action[0])),    # 0.95-1.05G
                            x_torque=0,
                            y_torque=0,
                            z_torque=0,

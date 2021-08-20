@@ -28,6 +28,7 @@ class Physics(Enum):
     PYB = "pyb"                         # Base PyBullet physics update
     DYN = "dyn"                         # Update with an explicit model of the dynamics
     PYB_GND = "pyb_gnd"                 # PyBullet physics update with ground effect
+    PYB_WIND = "pyb_wind"               # PyBullet physics update with wind #!
     PYB_DRAG = "pyb_drag"               # PyBullet physics update with drag
     PYB_DW = "pyb_dw"                   # PyBullet physics update with downwash
     PYB_GND_DRAG_DW = "pyb_gnd_drag_dw" # PyBullet physics update with ground effect, drag, and downwash
@@ -57,15 +58,20 @@ class BaseAviary(gym.Env):
                  neighbourhood_radius: float=np.inf,
                  initial_xyzs=None,
                  initial_rpys=None,
+                 fixed_init=False,
                  physics: Physics=Physics.PYB,
                  freq: int=240,
                  aggregate_phy_steps: int=1,
                  gui=False,
                  record=False,
+                 video_path=None,
                  obstacles=False,
                  user_debug_gui=True,
                  vision_attributes=False,
-                 dynamics_attributes=False
+                 dynamics_attributes=False,
+                 # wind
+                 wind_model='simple',
+                 wind_force=[0,0,0],
                  ):
         """Initialization of a generic aviary environment.
 
@@ -101,6 +107,10 @@ class BaseAviary(gym.Env):
             Whether to allocate the attributes needed by subclasses accepting thrust and torques inputs.
 
         """
+        #! Wind
+        self.WIND_MODEL = wind_model
+        self.WIND_FORCE = wind_force
+        
         #### Constants #############################################
         self.G = 9.8
         self.RAD2DEG = 180/np.pi
@@ -115,6 +125,7 @@ class BaseAviary(gym.Env):
         self.DRONE_MODEL = drone_model
         self.GUI = gui
         self.RECORD = record
+        self.VIDEO_PATH = video_path
         self.PHYSICS = physics
         self.OBSTACLES = obstacles
         self.USER_DEBUG = user_debug_gui
@@ -141,8 +152,8 @@ class BaseAviary(gym.Env):
             self.M, self.L, self.J[0,0], self.J[1,1], self.J[2,2], self.KF, self.KM, self.THRUST2WEIGHT_RATIO, self.MAX_SPEED_KMH, self.GND_EFF_COEFF, self.PROP_RADIUS, self.DRAG_COEFF[0], self.DRAG_COEFF[2], self.DW_COEFF_1, self.DW_COEFF_2, self.DW_COEFF_3))
         #### Compute constants #####################################
         self.GRAVITY = self.G*self.M
-        self.HOVER_RPM = np.sqrt(self.GRAVITY / (4*self.KF))
-        self.MAX_RPM = np.sqrt((self.THRUST2WEIGHT_RATIO*self.GRAVITY) / (4*self.KF))
+        self.HOVER_RPM = np.sqrt(self.GRAVITY / (4*self.KF))    # 14468.4 for CF
+        self.MAX_RPM = np.sqrt((self.THRUST2WEIGHT_RATIO*self.GRAVITY) / (4*self.KF))   # 21702.6 for CF
         self.MAX_THRUST = (4*self.KF*self.MAX_RPM**2)
         if self.DRONE_MODEL == DroneModel.CF2X:
             self.MAX_XY_TORQUE = (2*self.L*self.KF*self.MAX_RPM**2)/np.sqrt(2)
@@ -221,10 +232,11 @@ class BaseAviary(gym.Env):
                                                             farVal=1000.0
                                                             )
         #### Set initial poses #####################################
+        self.FIXED_INIT = fixed_init
         if initial_xyzs is None:
             self.INIT_XYZS = np.vstack([np.array([x*4*self.L for x in range(self.NUM_DRONES)]), \
                                         np.array([y*4*self.L for y in range(self.NUM_DRONES)]), \
-                                        np.ones(self.NUM_DRONES) * (self.COLLISION_H/2-self.COLLISION_Z_OFFSET+.1)]).transpose().reshape(self.NUM_DRONES, 3)
+                                        np.ones(self.NUM_DRONES) * (self.COLLISION_H/2-self.COLLISION_Z_OFFSET+.1)]).transpose().reshape(self.NUM_DRONES, 3)    # 0,1125
         elif np.array(initial_xyzs).shape == (self.NUM_DRONES,3):
             self.INIT_XYZS = initial_xyzs
         else:
@@ -270,7 +282,7 @@ class BaseAviary(gym.Env):
     ################################################################################
 
     def step(self,
-             action
+             action,
              ):
         """Advances the environment by one simulation step.
 
@@ -339,6 +351,7 @@ class BaseAviary(gym.Env):
         else:
             self._saveLastAction(action)
             clipped_action = np.reshape(self._preprocessAction(action), (self.NUM_DRONES, 4))
+            # print(action, clipped_action)
         #### Repeat for as many as the aggregate physics steps #####
         for _ in range(self.AGGR_PHY_STEPS):
             #### Update and store the drones kinematic info for certain
@@ -351,6 +364,9 @@ class BaseAviary(gym.Env):
                     self._physics(clipped_action[i, :], i)
                 elif self.PHYSICS == Physics.DYN:
                     self._dynamics(clipped_action[i, :], i)
+                elif self.PHYSICS == Physics.PYB_WIND:
+                    self._physics(clipped_action[i, :], i)
+                    self._wind(i) #!
                 elif self.PHYSICS == Physics.PYB_GND:
                     self._physics(clipped_action[i, :], i)
                     self._groundEffect(clipped_action[i, :], i)
@@ -454,6 +470,18 @@ class BaseAviary(gym.Env):
         in the `reset()` function.
 
         """
+        if self.FIXED_INIT:
+            init_pos = self.INIT_XYZS[0,:]
+            init_rpy = self.INIT_RPYS[0,:]
+        else:
+            init_xy_range = [-0.3, 0.3]
+            init_z_range = [0.1, 1.2]
+            init_pos = np.concatenate((np.random.uniform(init_xy_range[0], init_xy_range[1], size=(2,)), np.random.uniform(init_z_range[0], init_z_range[1], size=(1,))))
+        
+            init_rp_range = np.array([-0.01, 0.01])*np.pi
+            init_rpy = np.random.uniform(init_rp_range[0], init_rp_range[1], size=(2,))
+            init_rpy = np.append(init_rpy, 0)
+        
         #### Initialize/reset counters and zero-valued variables ###
         self.RESET_TIME = time.time()
         self.step_counter = 0
@@ -483,10 +511,10 @@ class BaseAviary(gym.Env):
         #### Load ground plane, drone and obstacles models #########
         self.PLANE_ID = p.loadURDF("plane.urdf", physicsClientId=self.CLIENT)
         self.DRONE_IDS = np.array([p.loadURDF(os.path.dirname(os.path.abspath(__file__))+"/../assets/"+self.URDF,
-                                              self.INIT_XYZS[i,:],
-                                              p.getQuaternionFromEuler(self.INIT_RPYS[i,:]),
-                                              physicsClientId=self.CLIENT
-                                              ) for i in range(self.NUM_DRONES)])
+                                            init_pos,
+                                            p.getQuaternionFromEuler(init_rpy),
+                                            physicsClientId=self.CLIENT
+                                            ) for i in range(self.NUM_DRONES)])
         for i in range(self.NUM_DRONES):
             #### Show the frame of reference of the drone, note that ###
             #### It severly slows down the GUI #########################
@@ -522,10 +550,15 @@ class BaseAviary(gym.Env):
 
         """
         if self.RECORD and self.GUI:
-            self.VIDEO_ID = p.startStateLogging(loggingType=p.STATE_LOGGING_VIDEO_MP4,
-                                                fileName=os.path.dirname(os.path.abspath(__file__))+"/../../files/videos/video-"+datetime.now().strftime("%m.%d.%Y_%H.%M.%S")+".mp4",
-                                                physicsClientId=self.CLIENT
-                                                )
+            if self.VIDEO_PATH is not None:
+                fileName = self.VIDEO_PATH
+            else:
+                fileName = os.path.dirname(os.path.abspath(__file__))+"/video-"+datetime.now().strftime("%m.%d.%Y_%H.%M.%S")+".mp4" #os.path.dirname(os.path.abspath(__file__))+"/../../files/videos/video-"+datetime.now().strftime("%m.%d.%Y_%H.%M.%S")+".mp4"
+            self.VIDEO_ID = p.startStateLogging(
+                                        loggingType=p.STATE_LOGGING_VIDEO_MP4,
+                                        fileName=fileName,
+                                        physicsClientId=self.CLIENT
+                                        )
         if self.RECORD and not self.GUI:
             self.FRAME_NUM = 0
             self.IMG_PATH = os.path.dirname(os.path.abspath(__file__))+"/../../files/videos/video-"+datetime.now().strftime("%m.%d.%Y_%H.%M.%S")+"/"
@@ -668,6 +701,35 @@ class BaseAviary(gym.Env):
                 if np.linalg.norm(self.pos[i, :]-self.pos[j+i+1, :]) < self.NEIGHBOURHOOD_RADIUS:
                     adjacency_mat[i, j+i+1] = adjacency_mat[j+i+1, i] = 1
         return adjacency_mat
+    
+    ################################################################################
+
+    def _wind(self,
+              nth_drone
+              ):
+        """PyBullet implementation of a wind model.
+
+        TODO:
+        1. different wind profiles
+        2. external torques
+
+        Parameters
+        ----------
+        wind : ndarray
+            (3)-shaped array of floats containing the wind components in x,y,z, in the global frame
+        nth_drone : int
+            The ordinal number/position of the desired drone in list self.DRONE_IDS.
+
+        """
+        if self.WIND_MODEL == 'simple':
+            #### Simple wind model applied to the base/center of mass
+            p.applyExternalForce(self.DRONE_IDS[nth_drone],
+                                4,
+                                forceObj=self.WIND_FORCE,
+                                posObj=[0, 0, 0],
+                                flags=p.WORLD_FRAME,
+                                physicsClientId=self.CLIENT
+                                )
     
     ################################################################################
     
@@ -887,8 +949,10 @@ class BaseAviary(gym.Env):
         """
         if np.any(np.abs(action)) > 1:
             print("\n[ERROR] it", self.step_counter, "in BaseAviary._normalizedActionToRPM(), out-of-bound action")
-        return np.where(action <= 0, (action+1)*self.HOVER_RPM, action*self.MAX_RPM) # Non-linear mapping: -1 -> 0, 0 -> HOVER_RPM, 1 -> MAX_RPM
-    
+        # return np.where(action <= 0, (action+1)*self.HOVER_RPM, action*self.MAX_RPM) # Non-linear mapping: -1 -> 0, 0 -> HOVER_RPM, 1 -> MAX_RPM
+        # return (action+1)/2*self.MAX_RPM
+        return action*self.MAX_RPM/8 + self.HOVER_RPM
+
     ################################################################################
 
     def _saveLastAction(self,
