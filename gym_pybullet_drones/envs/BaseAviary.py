@@ -511,10 +511,11 @@ class BaseAviary(gym.Env):
         #### Load ground plane, drone and obstacles models #########
         self.PLANE_ID = p.loadURDF("plane.urdf", physicsClientId=self.CLIENT)
         self.DRONE_IDS = np.array([p.loadURDF(os.path.dirname(os.path.abspath(__file__))+"/../assets/"+self.URDF,
-                                            init_pos,
-                                            p.getQuaternionFromEuler(init_rpy),
-                                            physicsClientId=self.CLIENT
-                                            ) for i in range(self.NUM_DRONES)])
+                                              init_pos,
+                                              p.getQuaternionFromEuler(init_rpy),
+                                              flags = p.URDF_USE_INERTIA_FROM_FILE,
+                                              physicsClientId=self.CLIENT
+                                              ) for i in range(self.NUM_DRONES)])
         for i in range(self.NUM_DRONES):
             #### Show the frame of reference of the drone, note that ###
             #### It severly slows down the GUI #########################
