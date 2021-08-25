@@ -13,13 +13,19 @@ class HoverAviary(BaseSingleAgentAviary):
                  drone_model: DroneModel=DroneModel.CF2X,
                  initial_xyzs=None,
                  initial_rpys=None,
+                 fixed_init=False,
                  physics: Physics=Physics.PYB,
                  freq: int=240,
                  aggregate_phy_steps: int=1,
                  gui=False,
                  record=False, 
+                 video_path=None,
                  obs: ObservationType=ObservationType.KIN,
-                 act: ActionType=ActionType.RPM
+                 act: ActionType=ActionType.RPM,
+                 # wind
+                 wind_model='simple',
+                 wind_force=[0,0,0],
+                 use_normalize=False
                  ):
         """Initialization of a single agent RL environment.
 
@@ -52,18 +58,23 @@ class HoverAviary(BaseSingleAgentAviary):
         super().__init__(drone_model=drone_model,
                          initial_xyzs=initial_xyzs,
                          initial_rpys=initial_rpys,
+                         fixed_init=fixed_init,
                          physics=physics,
                          freq=freq,
                          aggregate_phy_steps=aggregate_phy_steps,
                          gui=gui,
                          record=record,
+                         video_path=video_path,
                          obs=obs,
-                         act=act
+                         act=act,
+                         wind_model=wind_model,
+                         wind_force=wind_force,
+                         use_normalize=use_normalize
                          )
 
     ################################################################################
-    
     def _computeReward(self):
+    
         """Computes the current reward value.
 
         Returns
@@ -72,8 +83,15 @@ class HoverAviary(BaseSingleAgentAviary):
             The reward.
 
         """
-        state = self._getDroneStateVector(0)
+        state = self._getDroneStateVector(0)    # pos-3; quat-4; rpy-3; vel-3; ang-vel-4; last_clipped_action-4
         return -1 * np.linalg.norm(np.array([0, 0, 1])-state[0:3])**2
+        # return -1*(1-state[2])**2 - 5*np.linalg.norm(np.array([0, 0])-state[0:2])**2
+        # reward = -1*(1-state[2])**2 - 5*np.linalg.norm(np.array([0, 0])-state[0:2])**2 - abs(state[7]) - abs(state[8])
+        # reward = -(1-state[2])**2 - 0.1*np.linalg.norm(np.array([0, 0])-state[0:2])**2
+        # if np.linalg.norm(state[0:2]) > 0.50: 
+            # reward -= 100
+        return reward
+
 
     ################################################################################
     
@@ -86,8 +104,11 @@ class HoverAviary(BaseSingleAgentAviary):
             Whether the current episode is done.
 
         """
+        state = self._getDroneStateVector(0)
         if self.step_counter/self.SIM_FREQ > self.EPISODE_LEN_SEC:
             return True
+        # elif np.linalg.norm(state[0:2]) > 1:
+            # return True
         else:
             return False
 
@@ -127,8 +148,8 @@ class HoverAviary(BaseSingleAgentAviary):
         MAX_LIN_VEL_XY = 3 
         MAX_LIN_VEL_Z = 1
 
-        MAX_XY = MAX_LIN_VEL_XY*self.EPISODE_LEN_SEC
-        MAX_Z = MAX_LIN_VEL_Z*self.EPISODE_LEN_SEC
+        MAX_XY = MAX_LIN_VEL_XY*self.EPISODE_LEN_SEC    # 3*5=15
+        MAX_Z = MAX_LIN_VEL_Z*self.EPISODE_LEN_SEC  # 1*5=5
 
         MAX_PITCH_ROLL = np.pi # Full range
 

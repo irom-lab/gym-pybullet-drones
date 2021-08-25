@@ -60,7 +60,8 @@ class Logger(object):
                                                                                                   # rpm2,
                                                                                                   # rpm3
         #### Note: this is the suggest information to log ##############################
-        self.controls = np.zeros((num_drones, 12, duration_sec*self.LOGGING_FREQ_HZ)) #### 12 control targets: pos_x,
+        self.controls = np.zeros((num_drones, 4, duration_sec*self.LOGGING_FREQ_HZ))
+        # self.controls = np.zeros((num_drones, 12, duration_sec*self.LOGGING_FREQ_HZ)) #### 12 control targets: pos_x,
                                                                                                              # pos_y,
                                                                                                              # pos_z,
                                                                                                              # vel_x, 
@@ -102,7 +103,7 @@ class Logger(object):
         if current_counter >= self.timestamps.shape[1]:
             self.timestamps = np.concatenate((self.timestamps, np.zeros((self.NUM_DRONES, 1))), axis=1)
             self.states = np.concatenate((self.states, np.zeros((self.NUM_DRONES, 16, 1))), axis=2)
-            self.controls = np.concatenate((self.controls, np.zeros((self.NUM_DRONES, 12, 1))), axis=2)
+            self.controls = np.concatenate((self.controls, np.zeros((self.NUM_DRONES, 4, 1))), axis=2)
         #### Advance a counter is the matrices have overgrown it ###
         elif not self.PREALLOCATED_ARRAYS and self.timestamps.shape[1] > current_counter:
             current_counter = self.timestamps.shape[1]-1
@@ -208,7 +209,7 @@ class Logger(object):
         """
         #### Loop over colors and line styles ######################
         plt.rc('axes', prop_cycle=(cycler('color', ['r', 'g', 'b', 'y']) + cycler('linestyle', ['-', '--', ':', '-.'])))
-        fig, axs = plt.subplots(10, 2)
+        fig, axs = plt.subplots(12, 2)
         t = np.arange(0, self.timestamps.shape[1]/self.LOGGING_FREQ_HZ, 1/self.LOGGING_FREQ_HZ)
 
         #### Column ################################################
@@ -354,8 +355,35 @@ class Logger(object):
         else:
             axs[row, col].set_ylabel('RPM3')
 
+        ### Controls ###############################################
+        row = 10
+        col = 0
+        for j in range(self.NUM_DRONES):
+            axs[row, col].plot(t, self.controls[j, 0, :], label="drone_"+str(j))
+        axs[row, col].set_xlabel('time')
+        axs[row, col].set_ylabel('thrust')
+
+        row = 11
+        for j in range(self.NUM_DRONES):
+            axs[row, col].plot(t, self.controls[j, 1, :], label="drone_"+str(j))
+        axs[row, col].set_xlabel('time')
+        axs[row, col].set_ylabel('t_x')
+
+        row = 10
+        col = 1
+        for j in range(self.NUM_DRONES):
+            axs[row, col].plot(t, self.controls[j, 2, :], label="drone_"+str(j))
+        axs[row, col].set_xlabel('time')
+        axs[row, col].set_ylabel('t_y')
+
+        row = 11
+        for j in range(self.NUM_DRONES):
+            axs[row, col].plot(t, self.controls[j, 3, :], label="drone_"+str(j))
+        axs[row, col].set_xlabel('time')
+        axs[row, col].set_ylabel('t_z')
+
         #### Drawing options #######################################
-        for i in range (10):
+        for i in range (12):
             for j in range (2):
                 axs[i, j].grid(True)
                 axs[i, j].legend(loc='upper right',
