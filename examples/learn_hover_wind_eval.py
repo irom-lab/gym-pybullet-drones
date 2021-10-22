@@ -25,13 +25,12 @@ from gym_pybullet_drones.envs.BaseAviary import DroneModel, Physics
 from gym_pybullet_drones.envs.single_agent_rl.BaseSingleAgentAviary import ActionType, ObservationType
 
 if __name__ == "__main__":
-    log_dir = 'logs/test_hover_wind_dyn_ppo_v4/'
+    log_dir = 'logs/test_hover_wind_dyn_ppo_v6/'
 
     n_envs = 1
-    fixed_init_pos = [0, 0, 1]
+    fixed_init_pos = [[0, 0, 0.1]]
     wind_model = 'simple'
-    drag_coeff_xy = 9.1785e-7  # drag_coeff_z="10.311e-7"
-    wind_force = [drag_coeff_xy * 10, 0, 0]
+    wind_force = [10, 0, 0]
     aggregate_phy_steps = 5
     act = ActionType.DYN
     use_normalize = True
@@ -92,7 +91,8 @@ if __name__ == "__main__":
                 [obs[0:3],
                  np.zeros(4), obs[3:15],
                  np.resize(action, (4))]),
-            control=action,
+            # control=action,
+            control=np.zeros(12),
         )
         reward_total += reward
         if i % env.SIM_FREQ == 0:

@@ -23,7 +23,7 @@ from gym_pybullet_drones.envs.single_agent_rl.BaseSingleAgentAviary import Actio
 if __name__ == "__main__":
 
     #### Save directory ########################################
-    log_dir = 'logs/test_hover_wind_dyn_ppo_v4/'
+    log_dir = 'logs/test_hover_wind_dyn_ppo_v6/'
     model_type = log_dir.split('_')[-2]
     ensure_directory_hard(log_dir)
 
@@ -31,10 +31,9 @@ if __name__ == "__main__":
     # Envs
     n_envs = 4
     fixed_init_train = None
-    fixed_init_valid = [0, 0, 1]
+    fixed_init_valid = [[0, 0, 0.1]]
     wind_model = 'simple'
-    drag_coeff_xy = 9.1785e-7  # drag_coeff_z="10.311e-7"
-    wind_force = [drag_coeff_xy * 10, 0, 0]
+    wind_force = [10, 0, 0]
     aggregate_phy_steps = 5
     act = ActionType.DYN  # ONE_D_RPM, RPM
     use_normalize = True

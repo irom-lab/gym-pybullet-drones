@@ -251,11 +251,12 @@ class BaseSingleAgentAviary(BaseAviary):
                 return np.array(self.HOVER_RPM * (1 + 0.05 * action))
         elif self.ACT_TYPE == ActionType.DYN:
             return nnlsRPM(  # thrust=(self.GRAVITY*(action[0]+1)), # 0-2G
-                thrust=(self.GRAVITY * (1 + 0.05 * action[0])),  # 0.95-1.05G
-                x_torque=(0.01 * self.MAX_XY_TORQUE *
+                # thrust=(self.GRAVITY * (1 + 0.05 * action[0])),  # 0.95-1.05G
+                thrust=(self.GRAVITY * (1 + 0.5 * action[0])),  # 0.95-1.05G
+                x_torque=(0.1 * self.MAX_XY_TORQUE *
                           action[1]),  #? use 0.05 to limit?
-                y_torque=(0.01 * self.MAX_XY_TORQUE * action[2]),
-                z_torque=(0.01 * self.MAX_Z_TORQUE * action[3]),
+                y_torque=(0.1 * self.MAX_XY_TORQUE * action[2]),
+                z_torque=(0.1 * self.MAX_Z_TORQUE * action[3]),
                 counter=self.step_counter,
                 max_thrust=self.MAX_THRUST,
                 max_xy_torque=self.MAX_XY_TORQUE,
