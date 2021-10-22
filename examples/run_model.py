@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 from gym_pybullet_drones.envs.BaseAviary import DroneModel, Physics
 from gym_pybullet_drones.envs.CtrlAviary import CtrlAviary
 from gym_pybullet_drones.control.DSLPIDControl import DSLPIDControl
+from gym_pybullet_drones.control.PX4Control import PX4Control
 from gym_pybullet_drones.utils.Logger import Logger
 from gym_pybullet_drones.utils.utils import sync
 
@@ -26,7 +27,7 @@ if __name__ == "__main__":
     ARGS = parser.parse_args()
 
     #
-    ARGS.drone = DroneModel.CF2X
+    ARGS.drone = DroneModel.X500  # CF2X
     ARGS.physics = Physics.PYB_WIND
     ARGS.obstacles = False
 
@@ -41,7 +42,7 @@ if __name__ == "__main__":
     ARGS.user_debug_gui = False
 
     wind_model = 'simple'
-    wind_force = [20, 0, 0]
+    wind_force = [0, 0, 0]
 
     #### Initialize the simulation #############################
     H = 1.0
@@ -58,10 +59,14 @@ if __name__ == "__main__":
     TARGET_POS = np.zeros((NUM_WP, 3))
     for i in range(NUM_WP):  # around [R, 0]
         # TARGET_POS[i, :] = R * np.cos(
-        # (i / NUM_WP) *
-        # (2 * np.pi) + np.pi) + INIT_XYZS[0, 0] + R, R * np.sin(
-        # (i / NUM_WP) * (2 * np.pi) + np.pi) + INIT_XYZS[0, 1], 0
-        TARGET_POS[i, :] = 0.0, 0.0, H
+        #     (i / NUM_WP) *
+        #     (2 * np.pi) + np.pi) + INIT_XYZS[0, 0] + R, R * np.sin(
+        #         (i / NUM_WP) * (2 * np.pi) + np.pi) + INIT_XYZS[0, 1], 0
+        # TARGET_POS[i, :] = 0.0, 0.0, H
+        TARGET_POS[i, :] = 0.005 * i, 0.005 * i, H
+    fig = plt.figure()
+    plt.scatter(TARGET_POS[:, 0], TARGET_POS[:, 1])
+    plt.show()
     wp_counters = np.array([0])
 
     #### Create the environment with or without video capture ##
@@ -92,19 +97,24 @@ if __name__ == "__main__":
                     num_drones=1)
 
     #### Initialize the controllers ############################
-    ctrl = [DSLPIDControl(drone_model=ARGS.drone)]
+    # ctrl = [DSLPIDControl(drone_model=ARGS.drone)]
+    ctrl = [
+        PX4Control(drone_model=ARGS.drone, Ts=AGGR_PHY_STEPS / env.SIM_FREQ)
+    ]
 
     #### Run the simulation ####################################
-    CTRL_EVERY_N_STEPS = int(np.floor(env.SIM_FREQ / ARGS.control_freq_hz))
+    CTRL_EVERY_N_STEPS = int(np.floor(env.SIM_FREQ /
+                                      ARGS.control_freq_hz))  # 240/48=5
     action = {str(0): np.array([0, 0, 0, 0])}
+    obs = env.reset()
     START = time.time()
     for i in range(0, int(ARGS.duration_sec * env.SIM_FREQ), AGGR_PHY_STEPS):
 
-        #### Step the simulation ###################################
-        obs, reward, done, info = env.step(action)
-
         #### Compute control at the desired frequency ##############
         if i % CTRL_EVERY_N_STEPS == 0:
+            offset = obs[str(0)]["state"][:3] - np.hstack(
+                [TARGET_POS[wp_counters[0], 0:2], INIT_XYZS[0, 2]])
+            print('Offset: ', offset)
 
             #### Compute control for the current way point #############
             action[str(0)], _, _ = ctrl[0].computeControlFromState(
@@ -112,11 +122,18 @@ if __name__ == "__main__":
                 state=obs[str(0)]["state"],
                 target_pos=np.hstack(
                     [TARGET_POS[wp_counters[0], 0:2], INIT_XYZS[0, 2]]),
-                target_rpy=INIT_RPYS[0, :])
+                # target_rpy=INIT_RPYS[0, :]
+            )
+            # print(action[str(0)])
 
             #### Go to the next way point and loop #####################
             wp_counters[0] = wp_counters[0] + 1 if wp_counters[0] < (NUM_WP -
                                                                      1) else 0
+
+            #### Step the simulation ###################################
+            obs, reward, done, info = env.step(action)
+
+        time.sleep(0.1)
 
         #### Log the simulation ####################################
         logger.log(drone=0,

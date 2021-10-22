@@ -17,6 +17,7 @@ import gym
 class DroneModel(Enum):
     """Drone models enumeration class."""
 
+    X500 = "x500"  #
     CF2X = "cf2x"  # Bitcraze Craziflie 2.0 in the X configuration
     CF2P = "cf2p"  # Bitcraze Craziflie 2.0 in the + configuration
     HB = "hb"  # Generic quadrotor (with AscTec Hummingbird inertial properties)
@@ -552,21 +553,20 @@ class BaseAviary(gym.Env):
             init_rpy = [[0, 0, 0]]
         else:
             init_xy_range = [-0.2, 0.2]  # was +-0.3
-            init_z_range = [0.8, 1.2]  #!
-            # init_z_range = [0.1, 1.2]
-            init_pos = np.concatenate((np.random.uniform(init_xy_range[0],
-                                                         init_xy_range[1],
-                                                         size=(2, )),
-                                       np.random.uniform(init_z_range[0],
-                                                         init_z_range[1],
-                                                         size=(1, ))))
+            # init_z_range = [0.8, 1.2]  #!
+            init_z_range = [0.1, 1.2]
+            init_pos = np.concatenate(
+                (np.random.uniform(
+                    init_xy_range[0], init_xy_range[1], size=(1, 2)),
+                 np.random.uniform(
+                     init_z_range[0], init_z_range[1], size=(1, 1))),
+                axis=1)
 
             init_rp_range = np.array([-0.01, 0.01]) * np.pi
             init_rpy = np.random.uniform(init_rp_range[0],
                                          init_rp_range[1],
                                          size=(2, ))
-            init_rpy = np.append(init_rpy, 0)
-
+            init_rpy = np.append(init_rpy, 0)[np.newaxis]
         #### Initialize/reset counters and zero-valued variables ###
         self.RESET_TIME = time.time()
         self.step_counter = 0
