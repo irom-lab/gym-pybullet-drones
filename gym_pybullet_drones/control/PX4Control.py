@@ -139,7 +139,11 @@ class PX4Control(BaseControl):
 
     ################################################################################
 
-    def computeControlFromState(self, state, target_pos, control_timestep):
+    def computeControlFromState(self,
+                                state,
+                                target_pos,
+                                rate_residual=np.zeros((3)),
+                                thrust_residual=0):
         """Computes the PID control action (as RPMs) for a single drone.
 
         Parameters
@@ -176,7 +180,6 @@ class PX4Control(BaseControl):
         #
         self.vel_dot = (self.vel - self.prev_vel) / self.Ts
         self.omega_dot = (self.omega - self.prev_omega) / self.Ts
-        # print('Quat: ', self.quat)
         # print('vel dot: ', self.vel_dot)
         # print('omega dot: ', self.omega_dot)
 
@@ -197,13 +200,17 @@ class PX4Control(BaseControl):
         self.xy_vel_control()
         self.thrustToAttitude()
         self.attitude_control()
+
+        # Rate controller
+        self.rate_sp += rate_residual
         self.rate_control()
 
+        # Get thrust
+        thrust = np.linalg.norm(self.thrust_sp) + thrust_residual
+
         # Mixing
-        t = np.array([
-            np.linalg.norm(self.thrust_sp), self.rateCtrl[0], self.rateCtrl[1],
-            self.rateCtrl[2]
-        ])
+        t = np.array(
+            [thrust, self.rateCtrl[0], self.rateCtrl[1], self.rateCtrl[2]])
         # w_cmd = np.sqrt(
         #     np.clip(np.dot(self.mixerFMinv, t), self.minWmotor**2,
         #             self.maxWmotor**2))
@@ -215,14 +222,17 @@ class PX4Control(BaseControl):
         w_cmd = np.sqrt(w_cmd)
 
         # print('')
-        print('Pos: ', self.pos)
-        print('Thrust sp:', self.thrust_sp)
-        print('Input: ', t)
-        # print('Nominal: ', np.sqrt(np.dot(self.mixerFMinv, t)))
-        print('Output: ', w_cmd)
-        print('')
-        import time
-        time.sleep(0.2)
+        # print('Pos: ', self.pos)
+        # print('Rate sp:', self.rate_sp)
+        # print('Thrust sp:', self.thrust_sp)
+        # print('Input: ', t)
+        # # print('Nominal: ', np.sqrt(np.dot(self.mixerFMinv, t)))
+        # print('Output: ', w_cmd)
+        # while 1:
+        #     continue
+        # print('')
+        # import time
+        # time.sleep(0.2)
         # return w_cmd * radps2rpm, None, None
         return w_cmd, None, None
 
