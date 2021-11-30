@@ -15,31 +15,34 @@ from stable_baselines3.common.logger import configure
 from stable_baselines3.common.env_util import make_vec_env
 
 from gym_pybullet_drones.utils.Logger import Logger
-from gym_pybullet_drones.envs.single_agent_rl.HoverAviary import HoverAviary
+from gym_pybullet_drones.envs.residual_rl.HoverResidualAviary import HoverResidualAviary
 from gym_pybullet_drones.utils.utils import sync, ensure_directory_hard
 from gym_pybullet_drones.envs.BaseAviary import DroneModel, Physics
-from gym_pybullet_drones.envs.single_agent_rl.BaseSingleAgentAviary import ActionType
+from gym_pybullet_drones.envs.residual_rl.BaseResidualAviary import ActionType
 
 if __name__ == "__main__":
 
     #### Save directory ########################################
-    log_dir = 'logs/test_hover_wind_dyn_ppo_v6/'
+    log_dir = 'logs/test_hover_wind_res_ppo_v0/'
     model_type = log_dir.split('_')[-2]
     ensure_directory_hard(log_dir)
 
     # TODO: use yaml; dump info
     # Envs
-    n_envs = 4
-    fixed_init_train = None
-    fixed_init_valid = [[0, 0, 0.1]]
+    n_envs = 1
+    episode_len_sec = 5
+    fixed_init_train = [[0, 0, 1]]
+    fixed_init_valid = [[0, 0, 1]]
     wind_model = 'simple'
-    wind_force = [10, 0, 0]
+    wind_force = [100, 0, 0]    #!
     aggregate_phy_steps = 5
-    act = ActionType.DYN  # ONE_D_RPM, RPM
+    act = ActionType.RES
     use_normalize = True
     env_kwargs = dict(
+        drone_model=DroneModel.X500,
         act=act,
         aggregate_phy_steps=aggregate_phy_steps,
+        episode_len_sec=episode_len_sec,
         physics=Physics.PYB_WIND,  # Drag model in PyBullet, added wind),
         wind_model=wind_model,
         wind_force=wind_force,
@@ -64,7 +67,7 @@ if __name__ == "__main__":
     ent_coef = 5.0
 
     # #### Check the environment's spaces ########################
-    env = make_vec_env(HoverAviary,
+    env = make_vec_env(HoverResidualAviary,
                        env_kwargs=env_kwargs,
                        n_envs=n_envs,
                        seed=0)
@@ -74,9 +77,9 @@ if __name__ == "__main__":
     # Separate evaluation env
     env_kwargs['fixed_init_pos'] = fixed_init_valid
     eval_env = make_vec_env(
-        HoverAviary,
+        HoverResidualAviary,
         env_kwargs=env_kwargs,
-        n_envs=2,  # n_eval_episodes=10 default
+        n_envs=1,  # n_eval_episodes=10 default
         seed=0)
     callback_on_best = StopTrainingOnRewardThreshold(reward_threshold=0,
                                                      verbose=1)
@@ -91,8 +94,9 @@ if __name__ == "__main__":
         render=False)  # Use deterministic actions for evaluation
     policy_kwargs = dict(
         activation_fn=torch.nn.ReLU,
-        # net_arch=[512, 512, 256, 128]
-        net_arch=[256, 128])
+        net_arch=[512, 512, 256, 128]
+        # net_arch=[256, 128]
+        )
     onpolicy_kwargs = dict(activation_fn=torch.nn.ReLU,
                            net_arch=[256, dict(vf=[128], pi=[128])])
 
@@ -148,7 +152,7 @@ if __name__ == "__main__":
         model = TD3.load(log_dir + 'best_model')
     elif model_type == 'ppo':
         model = PPO.load(log_dir + 'best_model')
-    env = HoverAviary(
+    env = HoverResidualAviary(
         gui=True,
         record=True,
         video_path=log_dir + 'best_video.mp4',
@@ -158,14 +162,14 @@ if __name__ == "__main__":
         wind_model=wind_model,
         wind_force=wind_force,
         use_normalize=use_normalize,
+        fixed_init_pos=fixed_init_train,
     )
     pb_logger = Logger(logging_freq_hz=int(env.SIM_FREQ / env.AGGR_PHY_STEPS),
                        num_drones=1)
     obs = env.reset()
     start = time.time()
-    episode_sec = 5
     reward_total = 0
-    for i in range(int(episode_sec * env.SIM_FREQ / env.AGGR_PHY_STEPS)):
+    for i in range(int(episode_len_sec * env.SIM_FREQ / env.AGGR_PHY_STEPS)):
         action, _states = model.predict(obs, deterministic=True)
         obs, reward, done, info = env.step(action)
         pb_logger.log(drone=0,

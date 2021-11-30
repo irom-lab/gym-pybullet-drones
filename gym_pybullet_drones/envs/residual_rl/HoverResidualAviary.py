@@ -1,29 +1,31 @@
 import numpy as np
 from gym import spaces
 
-from gym_pybullet_drones.envs.BaseAviary import DroneModel, Physics, BaseAviary
-from gym_pybullet_drones.envs.single_agent_rl.BaseSingleAgentAviary import ActionType, ObservationType, BaseSingleAgentAviary
+from gym_pybullet_drones.envs.BaseAviary import DroneModel, Physics
+from gym_pybullet_drones.envs.residual_rl.BaseResidualAviary import ActionType, ObservationType, BaseResidualAviary
 
 
-class HoverAviary(BaseSingleAgentAviary):
-    """Single agent RL problem: hover at position."""
+class HoverResidualAviary(BaseResidualAviary):
+    """Single agent RL problem: hover at position. Using residual model"""
 
     ################################################################################
 
     def __init__(
             self,
-            drone_model: DroneModel = DroneModel.CF2X,
+            drone_model: DroneModel = DroneModel.X500,
             initial_xyzs=None,
             initial_rpys=None,
             fixed_init_pos=None,
+            target_pos=[0,0,1],
             physics: Physics = Physics.PYB,
             freq: int = 240,
             aggregate_phy_steps: int = 1,
+            episode_len_sec: int = 5,
             gui=False,
             record=False,
             video_path=None,
             obs: ObservationType = ObservationType.KIN,
-            act: ActionType = ActionType.RPM,
+            act: ActionType = ActionType.RES,
             # wind
             wind_model='simple',
             wind_force=[0, 0, 0],
@@ -63,6 +65,7 @@ class HoverAviary(BaseSingleAgentAviary):
                          physics=physics,
                          freq=freq,
                          aggregate_phy_steps=aggregate_phy_steps,
+                         episode_len_sec=episode_len_sec,
                          gui=gui,
                          record=record,
                          video_path=video_path,
@@ -71,6 +74,7 @@ class HoverAviary(BaseSingleAgentAviary):
                          wind_model=wind_model,
                          wind_force=wind_force,
                          use_normalize=use_normalize)
+        self.TARGET_POS = target_pos
 
     ################################################################################
     def _computeReward(self):
@@ -82,15 +86,15 @@ class HoverAviary(BaseSingleAgentAviary):
             The reward.
 
         """
-        state = self._getDroneStateVector(
-            0)  # pos-3; quat-4; rpy-3; vel-3; ang-vel-4; last_clipped_action-4
-        return -1 * np.linalg.norm(np.array([0, 0, 1]) - state[0:3])**2
+        # pos-3; quat-4; rpy-3; vel-3; ang-vel-4; last_clipped_action-4
+        state = self._getDroneStateVector(0)
+        return -1 * np.linalg.norm(np.array(self.TARGET_POS) - state[0:3])**2
         # return -1*(1-state[2])**2 - 5*np.linalg.norm(np.array([0, 0])-state[0:2])**2
         # reward = -1*(1-state[2])**2 - 5*np.linalg.norm(np.array([0, 0])-state[0:2])**2 - abs(state[7]) - abs(state[8])
         # reward = -(1-state[2])**2 - 0.1*np.linalg.norm(np.array([0, 0])-state[0:2])**2
         # if np.linalg.norm(state[0:2]) > 0.50:
         # reward -= 100
-        return reward
+        # return reward
 
     ################################################################################
 
@@ -103,11 +107,9 @@ class HoverAviary(BaseSingleAgentAviary):
             Whether the current episode is done.
 
         """
-        state = self._getDroneStateVector(0)
         if self.step_counter / self.SIM_FREQ > self.EPISODE_LEN_SEC:
+            self.ctrl.reset()
             return True
-        # elif np.linalg.norm(state[0:2]) > 1:
-        # return True
         else:
             return False
 
@@ -176,8 +178,8 @@ class HoverAviary(BaseSingleAgentAviary):
         norm_and_clipped = np.hstack([
             normalized_pos_xy, normalized_pos_z, state[3:7], normalized_rp,
             normalized_y, normalized_vel_xy, normalized_vel_z,
-            normalized_ang_vel, state[16:20]
-        ]).reshape(20, )
+            normalized_ang_vel
+        ]).reshape(16, )    # no rpms
 
         return norm_and_clipped
 

@@ -19,20 +19,21 @@ from stable_baselines3.common.logger import configure
 from stable_baselines3.common.env_util import make_vec_env
 
 from gym_pybullet_drones.utils.Logger import Logger
-from gym_pybullet_drones.envs.single_agent_rl.HoverAviary import HoverAviary
+from gym_pybullet_drones.envs.residual_rl.HoverResidualAviary import HoverResidualAviary
 from gym_pybullet_drones.utils.utils import sync, str2bool, ensure_directory_hard
 from gym_pybullet_drones.envs.BaseAviary import DroneModel, Physics
-from gym_pybullet_drones.envs.single_agent_rl.BaseSingleAgentAviary import ActionType, ObservationType
+from gym_pybullet_drones.envs.residual_rl.BaseResidualAviary import ActionType
 
 if __name__ == "__main__":
-    log_dir = 'logs/test_hover_wind_dyn_ppo_v6/'
+    log_dir = 'logs/test_hover_wind_res_ppo_v0/'
 
     n_envs = 1
-    fixed_init_pos = [[0, 0, 0.1]]
+    episode_len_sec = 5
+    fixed_init_pos = [[0, 0, 1.0]]
     wind_model = 'simple'
-    wind_force = [10, 0, 0]
+    wind_force = [100, 0, 0]
     aggregate_phy_steps = 5
-    act = ActionType.DYN
+    act = ActionType.RES
     use_normalize = True
     total_timesteps = 500000
     learning_rate = 1e-3
@@ -40,6 +41,7 @@ if __name__ == "__main__":
     model_type = log_dir.split('_')[-2]
 
     env_kwargs = dict(
+        drone_model=DroneModel.X500,
         act=act,
         aggregate_phy_steps=aggregate_phy_steps,
         physics=Physics.PYB_WIND,  # Drag model in PyBullet, added wind),
@@ -49,7 +51,7 @@ if __name__ == "__main__":
         fixed_init_pos=fixed_init_pos)
 
     # #### Check the environment's spaces ########################
-    env = make_vec_env(HoverAviary,
+    env = make_vec_env(HoverResidualAviary,
                        env_kwargs=env_kwargs,
                        n_envs=n_envs,
                        seed=0)
@@ -61,7 +63,7 @@ if __name__ == "__main__":
         model = PPO.load(log_dir + 'best_model')
 
     #### Show (and record a video of) the model's performance ##
-    env = HoverAviary(
+    env = HoverResidualAviary(
         gui=True,
         record=True,
         video_path=log_dir + 'best_video.mp4',
@@ -77,12 +79,12 @@ if __name__ == "__main__":
                        num_drones=1)
     obs = env.reset()
     start = time.time()
-    episode_sec = 5
     reward_total = 0
-    for i in range(int(episode_sec * env.SIM_FREQ / env.AGGR_PHY_STEPS)):
+    for i in range(int(episode_len_sec * env.SIM_FREQ / env.AGGR_PHY_STEPS)):
         action, _states = model.predict(obs, deterministic=True)
         print(action)
-        # action = np.array([0.0, 0.0, 1.0, 0.0])
+
+        action = np.array([0.0, 0.0, 0.0, 0.0])
         obs, reward, done, info = env.step(action)
         pb_logger.log(
             drone=0,
