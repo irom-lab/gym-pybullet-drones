@@ -84,7 +84,7 @@ class BaseAviary(gym.Env):
         # wind
         wind_model='simple',
         wind_force=[0, 0, 0],
-        wind_vector=[0, 0, 0],
+        wind_vector=np.array([.5, .5, 0]).reshape((3,1)),
     ):
         """Initialization of a generic aviary environment.
 
@@ -985,7 +985,7 @@ class BaseAviary(gym.Env):
     def _wind_aero_drag(self,
               rpm,
               nth_drone,
-              wind_vector
+              wind_vector_inertial
               ):
         """PyBullet implementation of aerodynamic drag forces due to wind.
         from: Craig, William, Derrick Yeo, and Derek A. Paley. "Geometric attitude and position control of a quadrotor in wind." Journal of Guidance, Control, and Dynamics 43.5 (2020): 870-883.
@@ -995,27 +995,51 @@ class BaseAviary(gym.Env):
             (4)-shaped array of ints containing the RPMs values of the 4 motors.
         nth_drone : int
             The ordinal number/position of the desired drone in list self.DRONE_IDS.
-        wind_vector : ndarray
-            (3,1)-shaped array of floats describing the wind vector in the [NCHECK: inertial frame]
+        wind_vector_inertial : ndarray
+            (3,1)-shaped array of floats describing the wind vector in the inertial frame
         """
         # Operational Variables
-        omega_j = 8000 #Propeller nominal angular velocity [RPM]
+        #omega_j = 8000 #Propeller nominal angular velocity [RPM]
+        omega_j = np.mean(rpm) #Average propeller angular velocity [RPM]
         # NCHECK: Eventually, convert to use individual motor rpms
 
 
         #### Rotation matrix of the base ###########################
         base_rot = np.array(p.getMatrixFromQuaternion(self.quat[nth_drone, :])).reshape(3, 3)
+        print("base_rot:")
+        print(base_rot)
+        wind_vector = np.matmul(np.linalg.inv(base_rot),wind_vector_inertial)
+        print("wind_vector: [INERTIAL_FRAME]")
+        print(wind_vector_inertial)
+        print("wind_vector: [BODY_FRAME]")
+        print(wind_vector)
+
         #### Bluff Body Drag
         f_bluff = 0.5*self.rho*np.linalg.norm(wind_vector)*self.Af*self.Cd*wind_vector
+        print("f_bluff: [BODY_FRAME]")
+        print(f_bluff)
         #### Induced Drag
         # rotate wind_vector into BODY_FRAME
         # project wind_vector onto b1xb2 plane
         # (in Paley, V_infty \cdot U1 = wind vector projection)
-        f_ind = self.Nr*self.Nb/4*self.rho*self.c*self.Cla*self.alpha_eff*np.sin(self.alpha_ind)*omega_j*self.rbar**2*wind_vector_projection
-        #*(np.dot(wind_vector.reshape((3,)),U1.reshape((3,))))*U1
+
+        #Extract wind frame axis
+        U1 = self._wind_frame(wind_vector)[:,0].reshape((3,1))
+        f_ind = 0.0
+        #Calculate induced drag for each propeller
+        for i in range(4):
+            omega_j = rpm[i]
+            print('RPM')
+            print(omega_j)
+            #don't multiply by self.Nr (number of rotors)
+            f_ind += self.Nb/4*self.rho*self.c*self.Cla*self.alpha_eff*np.sin(self.alpha_ind)*omega_j*self.rbar**2*(np.dot(wind_vector.reshape((3,)),U1.reshape((3,))))*U1
+        print("f_ind: [BODY_FRAME]")
+        print(f_ind)
 
         #### Total Aerodynamic Drag
         f_aero = f_bluff + f_ind
+        print("f_aero: [BODY_FRAME]")
+        print(f_aero)
         #NCHECK: Need to confirm all the frame of applied forces. Body or inertial (or link?)
         p.applyExternalForce(self.DRONE_IDS[nth_drone],
                              4,
@@ -1078,6 +1102,28 @@ class BaseAviary(gym.Env):
                               )
     
     ################################################################################
+    def _wind_frame(self, V_infty: np.ndarray) -> np.ndarray:
+        """
+        This function returns the rotation matrix between wind frame (u1-u2-b3) and body frame.
+        That is, the columns of WIND_FRAME are U1, U2, U3.
+        Note, U1 is the projection if V_infty onto the rotor hub plane (b1xb2)
+        U2 = U1 x U3
+        U3 = b3
+        
+        param@ V_infty: np.ndarray of shape (3,1), wind velocity vector [m/s] in BODY_FRAME coordinates
+        return@ WIND_FRAME: np.ndarray of shape (3,3), columns of which are U1, U2, U3
+        """
+        U3 = np.array([0, 0, 1]).reshape((3,1)) # U3 = e3 in body coordinates
+        U1 = np.zeros([3,1])
+        U1[0:2] = V_infty[0:2] #Extract horizontal components of V_infty (ignore V_infty[2])
+        if np.linalg.norm(U1) != 0:
+            U1 = U1 / np.linalg.norm(U1) #Normalize U1
+        U2 = -np.cross(U1,U3, axis = 0) #Determine U2 from cross product
+        
+        return np.hstack((U1, np.hstack((U2,U3)))) #Horizontal concatenation
+
+    ################################################################################
+
 
     def _downwash(self, nth_drone):
         """PyBullet implementation of a ground effect model.
