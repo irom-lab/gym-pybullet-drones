@@ -83,8 +83,8 @@ class BaseAviary(gym.Env):
         dynamics_attributes=False,
         # wind
         wind_model='simple',
-        wind_force=[0, 0, 0],
-        wind_vector=np.array([.5, .5, 0]).reshape((3,1)),
+        wind_force=[0, 0, 0], #used in _drag function (to be depreciated)
+        wind_vector=np.array([.05, .05, 0]).reshape((3,1)), #used in _wind_aero_... functions
     ):
         """Initialization of a generic aviary environment.
 
@@ -135,12 +135,12 @@ class BaseAviary(gym.Env):
         # Constants for WIND_AERO_DRAG
         self.rho = 1.225 #Density of air [kg/m^3]
         # Constants for BLADE_FLAPPING NCHECK: should these be self.?
-        lambda0 = 0.075 #Average inflow ratio
-        th0 = np.radians(16) #Root angle of attack [rad]
-        thtw = np.radians(-6.6) #Blade twist [rad]
-        k_beta = 3 #Hinge spring constant [N.m/rad]
-        nu_beta = 1.9 #Blade scaled natural frequency (listed as 1.9 on p.4 of 2016, 1.5 in 2020
-        gamma = 1.04 #Lock number
+        self.lambda0 = 0.075 #Average inflow ratio
+        self.th0 = np.radians(16) #Root angle of attack [rad]
+        self.thtw = np.radians(-6.6) #Blade twist [rad]
+        self.k_beta = 3 #Hinge spring constant [N.m/rad]
+        self.nu_beta = 1.9 #Blade scaled natural frequency (listed as 1.9 on p.4 of 2016, 1.5 in 2020
+        self.gamma = 1.04 #Lock number
         # Vehicle Constants [NCHECK: Should eventually encode this in urdf]
         self.Af = 0.02 #Quadrotor frontal area [m^2]
         self.Cd = 0.8 #Quadrotor drag coefficient
@@ -148,8 +148,8 @@ class BaseAviary(gym.Env):
         self.Nb = 2 #Number of blades
         self.c = 0.015 #Chord length m
         self.Cla = 2*np.pi #Airfoil lift slope
-        self.alpha_ind = np.arctan(lambda0/0.75) #approximation, induced angle of attack [rad]
-        self.alpha_eff = th0 + (3/4)*thtw - self.alpha_ind #effective angle of attack [rad]
+        self.alpha_ind = np.arctan(self.lambda0/0.75) #approximation, induced angle of attack [rad]
+        self.alpha_eff = self.th0 + (3/4)*self.thtw - self.alpha_ind #effective angle of attack [rad]
         self.rbar = 0.0635 #rotor blade length [m] ##NOT SURE IF ROTOR BLADE LENGTH = ROTOR RADIUS !!
 
         #### Parameters ############################################
@@ -583,25 +583,33 @@ class BaseAviary(gym.Env):
         in the `reset()` function.
 
         """
+        print(self.FIXED_INIT_POS)
         if self.FIXED_INIT_POS is not None:
             init_pos = self.FIXED_INIT_POS
             init_rpy = [[0, 0, 0]]
         else:
-            init_xy_range = [-0.2, 0.2]  # was +-0.3
-            # init_z_range = [0.8, 1.2]  #!
-            init_z_range = [0.1, 1.2]
-            init_pos = np.concatenate(
-                (np.random.uniform(
-                    init_xy_range[0], init_xy_range[1], size=(1, 2)),
-                 np.random.uniform(
-                     init_z_range[0], init_z_range[1], size=(1, 1))),
-                axis=1)
+            # init_xy_range = [-0.2, 0.2]  # was +-0.3
+            # # init_z_range = [0.8, 1.2]  #!
+            # init_z_range = [0.1, 1.2]
+            # init_pos = np.concatenate(
+            #     (np.random.uniform(
+            #         init_xy_range[0], init_xy_range[1], size=(1, 2)),
+            #      np.random.uniform(
+            #          init_z_range[0], init_z_range[1], size=(1, 1))),
+            #     axis=1)
 
-            init_rp_range = np.array([-0.01, 0.01]) * np.pi
-            init_rpy = np.random.uniform(init_rp_range[0],
-                                         init_rp_range[1],
-                                         size=(2, ))
-            init_rpy = np.append(init_rpy, 0)[np.newaxis]
+            # init_rp_range = np.array([-0.01, 0.01]) * np.pi
+            # init_rpy = np.random.uniform(init_rp_range[0],
+            #                              init_rp_range[1],
+            #                              size=(2, ))
+            # init_rpy = np.append(init_rpy, 0)[np.newaxis]
+            #from fly.py
+            H = 1
+            H_STEP = .05
+            R = .3
+            init_pos = np.array([[R*np.cos((i/6)*2*np.pi+np.pi/2), R*np.sin((i/6)*2*np.pi+np.pi/2)-R, H+i*H_STEP] for i in range(self.NUM_DRONES)])
+            init_rpy = np.array([[0, 0, 0] for i in range(self.NUM_DRONES)])
+            print(init_pos)
         #### Initialize/reset counters and zero-valued variables ###
         self.RESET_TIME = time.time()
         self.step_counter = 0
@@ -1006,18 +1014,18 @@ class BaseAviary(gym.Env):
 
         #### Rotation matrix of the base ###########################
         base_rot = np.array(p.getMatrixFromQuaternion(self.quat[nth_drone, :])).reshape(3, 3)
-        print("base_rot:")
-        print(base_rot)
-        wind_vector = np.matmul(np.linalg.inv(base_rot),wind_vector_inertial)
-        print("wind_vector: [INERTIAL_FRAME]")
-        print(wind_vector_inertial)
-        print("wind_vector: [BODY_FRAME]")
-        print(wind_vector)
+        #print("base_rot:")
+        #print(base_rot)
+        wind_vector = np.matmul(np.linalg.inv(base_rot),wind_vector_inertial) #Body Frame
+        #print("wind_vector: [INERTIAL_FRAME]")
+        #print(wind_vector_inertial)
+        #print("wind_vector: [BODY_FRAME]")
+        #print(wind_vector)
 
         #### Bluff Body Drag
         f_bluff = 0.5*self.rho*np.linalg.norm(wind_vector)*self.Af*self.Cd*wind_vector
-        print("f_bluff: [BODY_FRAME]")
-        print(f_bluff)
+        #print("f_bluff: [BODY_FRAME]")
+        #print(f_bluff)
         #### Induced Drag
         # rotate wind_vector into BODY_FRAME
         # project wind_vector onto b1xb2 plane
@@ -1029,18 +1037,17 @@ class BaseAviary(gym.Env):
         #Calculate induced drag for each propeller
         for i in range(4):
             omega_j = rpm[i]
-            print('RPM')
-            print(omega_j)
+            #print('RPM')
+            #print(omega_j)
             #don't multiply by self.Nr (number of rotors)
             f_ind += self.Nb/4*self.rho*self.c*self.Cla*self.alpha_eff*np.sin(self.alpha_ind)*omega_j*self.rbar**2*(np.dot(wind_vector.reshape((3,)),U1.reshape((3,))))*U1
-        print("f_ind: [BODY_FRAME]")
-        print(f_ind)
+        #print("f_ind: [BODY_FRAME]")
+        #print(f_ind)
 
         #### Total Aerodynamic Drag
         f_aero = f_bluff + f_ind
-        print("f_aero: [BODY_FRAME]")
-        print(f_aero)
-        #NCHECK: Need to confirm all the frame of applied forces. Body or inertial (or link?)
+        #print("f_aero: [BODY_FRAME]")
+        #print(f_aero)
         p.applyExternalForce(self.DRONE_IDS[nth_drone],
                              4,
                              forceObj=f_aero,
@@ -1054,7 +1061,7 @@ class BaseAviary(gym.Env):
     def _wind_bf_drag(self,
               rpm,
               nth_drone,
-              wind_vector
+              wind_vector_inertial
               ):
         """PyBullet implementation of blade flapping moment forces due to wind.
         from: Craig, William, Derrick Yeo, and Derek A. Paley. "Geometric attitude and position control of a quadrotor in wind." Journal of Guidance, Control, and Dynamics 43.5 (2020): 870-883.
@@ -1064,20 +1071,22 @@ class BaseAviary(gym.Env):
             (4)-shaped array of ints containing the RPMs values of the 4 motors.
         nth_drone : int
             The ordinal number/position of the desired drone in list self.DRONE_IDS.
-        wind_vector : ndarray
-            (3,1)-shaped array of floats describing the wind vector in the [NCHECK: inertial frame]
+        wind_vector_inertial : ndarray
+            (3,1)-shaped array of floats describing the wind vector in the [inertial frame]
         """
+
         # Operational Variables
         omega_j = 8000 #Propeller nominal angular velocity [RPM]
         v_tip = omega_j*2*np.pi/60*self.rbar #Propeller tip speed velocity [m/s]
         #### Rotation matrix of the base ###########################
         base_rot = np.array(p.getMatrixFromQuaternion(self.quat[nth_drone, :])).reshape(3, 3)
+        wind_vector = np.matmul(np.linalg.inv(base_rot),wind_vector_inertial) #Body Frame
         #### Determine Wind Frame Axes [NCHECK: Fix This]
-        U1 = wind_frame(V_infty)[:,0].reshape((3,1))
-        U2 = wind_frame(V_infty)[:,1].reshape((3,1))
+        U1 = self._wind_frame(wind_vector)[:,0].reshape((3,1))
+        U2 = self._wind_frame(wind_vector)[:,1].reshape((3,1))
         #### Calculate Blade Flapping Variables
         mu = np.linalg.norm(wind_vector)/v_tip #Advance ratio
-        chi = np.arctan(self.mu/self.lambda0) #
+        chi = np.arctan(mu/self.lambda0) #
         k_lambda_x = 15*np.pi/23*np.tan(chi/2) #Glauert longitudinal inflow gradient (also k_x)
 
         beta_1c = -self.gamma/(8*(self.nu_beta**2-1))*self.lambda0*k_lambda_x
@@ -1085,15 +1094,17 @@ class BaseAviary(gym.Env):
             
         beta_max = np.sqrt(beta_1c**2 + beta_1s**2)
         # NCHECK: Is there a better way than to apply this conditional?
-        if vel == 0:
+        if np.linalg.norm(wind_vector) == 0:
             phi_d = 0
         else:
             phi_d = np.arctan(beta_1s/beta_1c)-np.pi/2
         #### Calculate Single Hub Moment
-        M_single_hub = Nb/2*self.k_beta*beta_max*(np.cos(phi_d)*U1+np.sin(phi_d)*U2)
+        M_single_hub = self.Nb/2*self.k_beta*beta_max*(np.cos(phi_d)*U1+np.sin(phi_d)*U2)
         #### Calculate Total Hub Moment
         M_aero = np.array([[self.Nr*self.k_beta*beta_max*np.sin(phi_d)*np.dot(U2.reshape(3,),np.array([1,0,0]))],[self.Nr*self.k_beta*beta_max*np.sin(phi_d)*np.dot(U2.reshape(3,),np.array([0,1,0]))],[0]])
         # NCHECK: Need to check frames
+        print('M_AERO: [BODY_FRAME]')
+        print(M_aero)
         p.applyExternalTorque(self.DRONE_IDS[nth_drone],
                               4,
                               torqueObj=M_aero,
