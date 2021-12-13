@@ -84,7 +84,7 @@ class BaseAviary(gym.Env):
         # wind
         wind_model='simple',
         wind_force=[0, 0, 0], #used in _drag function (to be depreciated)
-        wind_vector=np.array([.05, .05, 0]).reshape((3,1)), #used in _wind_aero_... functions
+        wind_vector=np.array([.03, 0, 0]).reshape((3,1)), #used in _wind_aero_... functions
     ):
         """Initialization of a generic aviary environment.
 
