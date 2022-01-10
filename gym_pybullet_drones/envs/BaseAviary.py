@@ -84,7 +84,7 @@ class BaseAviary(gym.Env):
         # wind
         wind_model='simple',
         wind_force=[0, 0, 0], #used in _drag function (to be depreciated)
-        wind_vector=np.array([.03, 0, 0]).reshape((3,1)), #used in _wind_aero_... functions
+        wind_vector=np.array([1.1, 0, 0]).reshape((3,1)), #used in _wind_aero_... functions
     ):
         """Initialization of a generic aviary environment.
 
@@ -261,10 +261,16 @@ class BaseAviary(gym.Env):
                     p.COV_ENABLE_SEGMENTATION_MARK_PREVIEW
             ]:
                 p.configureDebugVisualizer(i, 0, physicsClientId=self.CLIENT)
-            p.resetDebugVisualizerCamera(cameraDistance=3,
+            #original
+            # p.resetDebugVisualizerCamera(cameraDistance=3,
+            #                              cameraYaw=-30,
+            #                              cameraPitch=-30,
+            #                              cameraTargetPosition=[0, 0, 0],
+            #                              physicsClientId=self.CLIENT)
+            p.resetDebugVisualizerCamera(cameraDistance=1,
                                          cameraYaw=-30,
                                          cameraPitch=-30,
-                                         cameraTargetPosition=[0, 0, 0],
+                                         cameraTargetPosition=[.15, -.15, .2],
                                          physicsClientId=self.CLIENT)
             ret = p.getDebugVisualizerCamera(physicsClientId=self.CLIENT)
             print("viewMatrix", ret[2])
@@ -604,7 +610,7 @@ class BaseAviary(gym.Env):
             #                              size=(2, ))
             # init_rpy = np.append(init_rpy, 0)[np.newaxis]
             #from fly.py
-            H = 1
+            H = .2
             H_STEP = .05
             R = .3
             init_pos = np.array([[R*np.cos((i/6)*2*np.pi+np.pi/2), R*np.sin((i/6)*2*np.pi+np.pi/2)-R, H+i*H_STEP] for i in range(self.NUM_DRONES)])
