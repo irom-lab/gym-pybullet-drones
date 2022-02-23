@@ -23,7 +23,7 @@ from gym_pybullet_drones.envs.residual_rl.BaseResidualAviary import ActionType
 if __name__ == "__main__":
 
     #### Save directory ########################################
-    log_dir = 'logs/test_hover_wind_res_ppo_v0/'
+    log_dir = 'logs/test_hover_wind_res_sac_v0/'  #!
     model_type = log_dir.split('_')[-2]
     ensure_directory_hard(log_dir)
 
@@ -31,14 +31,18 @@ if __name__ == "__main__":
     # Envs
     n_envs = 1
     episode_len_sec = 5
-    fixed_init_train = [[0, 0, 1]]
+    # fixed_init_train = [[0, 0, 1]]
+    init_xy_range = [-0.2, 0.2]
+    init_z_range = [0.8, 1.2]
     fixed_init_valid = [[0, 0, 1]]
     wind_model = 'simple'
-    wind_force = [100, 0, 0]    #!
+    wind_force = [100, 0, 0]  #!
     aggregate_phy_steps = 5
     act = ActionType.RES
     use_normalize = True
-    env_kwargs = dict(
+    rate_residual_scale = 0.1
+    thrust_residual_scale = 1.0
+    train_env_kwargs = dict(
         drone_model=DroneModel.X500,
         act=act,
         aggregate_phy_steps=aggregate_phy_steps,
@@ -47,7 +51,23 @@ if __name__ == "__main__":
         wind_model=wind_model,
         wind_force=wind_force,
         use_normalize=use_normalize,
-        fixed_init_pos=fixed_init_train)
+        # fixed_init_pos=fixed_init_train,
+        init_xy_range=init_xy_range,
+        init_z_range=init_z_range,
+        rate_residual_scale=rate_residual_scale,
+        thrust_residual_scale=thrust_residual_scale)
+    eval_env_kwargs = dict(
+        drone_model=DroneModel.X500,
+        act=act,
+        aggregate_phy_steps=aggregate_phy_steps,
+        episode_len_sec=episode_len_sec,
+        physics=Physics.PYB_WIND,  # Drag model in PyBullet, added wind),
+        wind_model=wind_model,
+        wind_force=wind_force,
+        use_normalize=use_normalize,
+        fixed_init_pos=fixed_init_valid,  # fixed
+        rate_residual_scale=rate_residual_scale,
+        thrust_residual_scale=thrust_residual_scale)
 
     # Time
     total_timesteps = 50000000
@@ -62,23 +82,22 @@ if __name__ == "__main__":
     clip_range = 0.1
 
     # Off-policy
-    buffer_size = 100000
+    buffer_size = 1000000
     gradient_steps = 1
-    ent_coef = 5.0
+    ent_coef = 0.02  # "auto"
 
     # #### Check the environment's spaces ########################
     env = make_vec_env(HoverResidualAviary,
-                       env_kwargs=env_kwargs,
+                       env_kwargs=train_env_kwargs,
                        n_envs=n_envs,
                        seed=0)
     print("[INFO] Action space:", env.action_space)
     print("[INFO] Observation space:", env.observation_space)
 
     # Separate evaluation env
-    env_kwargs['fixed_init_pos'] = fixed_init_valid
     eval_env = make_vec_env(
         HoverResidualAviary,
-        env_kwargs=env_kwargs,
+        env_kwargs=eval_env_kwargs,
         n_envs=1,  # n_eval_episodes=10 default
         seed=0)
     callback_on_best = StopTrainingOnRewardThreshold(reward_threshold=0,
@@ -92,11 +111,10 @@ if __name__ == "__main__":
         eval_freq=eval_freq,
         deterministic=True,
         render=False)  # Use deterministic actions for evaluation
-    policy_kwargs = dict(
-        activation_fn=torch.nn.ReLU,
-        net_arch=[512, 512, 256, 128]
-        # net_arch=[256, 128]
-        )
+    policy_kwargs = dict(activation_fn=torch.nn.ReLU,
+                         net_arch=[512, 512, 256, 128]
+                         # net_arch=[256, 128]
+                         )
     onpolicy_kwargs = dict(activation_fn=torch.nn.ReLU,
                            net_arch=[256, dict(vf=[128], pi=[128])])
 
@@ -162,7 +180,7 @@ if __name__ == "__main__":
         wind_model=wind_model,
         wind_force=wind_force,
         use_normalize=use_normalize,
-        fixed_init_pos=fixed_init_train,
+        fixed_init_pos=fixed_init_valid,
     )
     pb_logger = Logger(logging_freq_hz=int(env.SIM_FREQ / env.AGGR_PHY_STEPS),
                        num_drones=1)

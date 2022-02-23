@@ -118,7 +118,7 @@ if __name__ == "__main__":
 
             #### Compute control for the current way point #############
             action[str(0)], _, _ = ctrl[0].computeControlFromState(
-                control_timestep=CTRL_EVERY_N_STEPS * env.TIMESTEP,
+                # control_timestep=CTRL_EVERY_N_STEPS * env.TIMESTEP,
                 state=obs[str(0)]["state"],
                 target_pos=np.hstack(
                     [TARGET_POS[wp_counters[0], 0:2], INIT_XYZS[0, 2]]),
