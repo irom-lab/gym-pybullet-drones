@@ -67,7 +67,9 @@ class BaseAviary(gym.Env):
         neighbourhood_radius: float = np.inf,
         initial_xyzs=None,
         initial_rpys=None,
-        fixed_init_pos=None,
+        fixed_init_pos=[0,0,1],
+        init_xy_range=[0,0],
+        init_z_range=[1,1],
         physics: Physics = Physics.PYB,
         freq: int = 240,
         aggregate_phy_steps: int = 1,
@@ -283,6 +285,8 @@ class BaseAviary(gym.Env):
                     farVal=1000.0)
         #### Set initial poses #####################################
         self.FIXED_INIT_POS = fixed_init_pos
+        self.INIT_XY_RANGE = init_xy_range
+        self.INIT_Z_RANGE = init_z_range
         # if initial_xyzs is None:
         #     self.INIT_XYZS = np.vstack([np.array([x*4*self.L for x in range(self.NUM_DRONES)]), \
         #                                 np.array([y*4*self.L for y in range(self.NUM_DRONES)]), \
@@ -456,9 +460,11 @@ class BaseAviary(gym.Env):
         self._updateAndStoreKinematicInformation()
         #### Prepare the return values #############################
         obs = self._computeObs()
+        raw_obs = self._getDroneStateVector(0)
         reward = self._computeReward()
         done = self._computeDone()
         info = self._computeInfo()
+        info['raw_obs'] = raw_obs
         #### Advance the step counter ##############################
         self.step_counter = self.step_counter + (1 * self.AGGR_PHY_STEPS)
         return obs, reward, done, info
@@ -552,9 +558,8 @@ class BaseAviary(gym.Env):
             init_pos = self.FIXED_INIT_POS
             init_rpy = [[0, 0, 0]]
         else:
-            init_xy_range = [-0.2, 0.2]  # was +-0.3
-            # init_z_range = [0.8, 1.2]  #!
-            init_z_range = [0.1, 1.2]
+            init_xy_range = self.INIT_XY_RANGE
+            init_z_range = self.INIT_Z_RANGE
             init_pos = np.concatenate(
                 (np.random.uniform(
                     init_xy_range[0], init_xy_range[1], size=(1, 2)),

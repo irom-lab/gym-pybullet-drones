@@ -11,25 +11,31 @@ class HoverResidualAviary(BaseResidualAviary):
     ################################################################################
 
     def __init__(
-            self,
-            drone_model: DroneModel = DroneModel.X500,
-            initial_xyzs=None,
-            initial_rpys=None,
-            fixed_init_pos=None,
-            target_pos=[0,0,1],
-            physics: Physics = Physics.PYB,
-            freq: int = 240,
-            aggregate_phy_steps: int = 1,
-            episode_len_sec: int = 5,
-            gui=False,
-            record=False,
-            video_path=None,
-            obs: ObservationType = ObservationType.KIN,
-            act: ActionType = ActionType.RES,
-            # wind
-            wind_model='simple',
-            wind_force=[0, 0, 0],
-            use_normalize=False):
+        self,
+        drone_model: DroneModel = DroneModel.X500,
+        initial_xyzs=None,
+        initial_rpys=None,
+        fixed_init_pos=None,
+        init_xy_range=[0, 0],
+        init_z_range=[1, 1],
+        target_pos=[0, 0, 1],
+        physics: Physics = Physics.PYB,
+        freq: int = 240,
+        aggregate_phy_steps: int = 1,
+        episode_len_sec: int = 5,
+        gui=False,
+        record=False,
+        video_path=None,
+        obs: ObservationType = ObservationType.KIN,
+        act: ActionType = ActionType.RES,
+        # wind
+        wind_model='simple',
+        wind_force=[0, 0, 0],
+        use_normalize=False,
+        # residual
+        rate_residual_scale=0.1,
+        thrust_residual_scale=1.0,
+    ):
         """Initialization of a single agent RL environment.
 
         Using the generic single agent RL superclass.
@@ -62,6 +68,8 @@ class HoverResidualAviary(BaseResidualAviary):
                          initial_xyzs=initial_xyzs,
                          initial_rpys=initial_rpys,
                          fixed_init_pos=fixed_init_pos,
+                         init_xy_range=init_xy_range,
+                         init_z_range=init_z_range,
                          physics=physics,
                          freq=freq,
                          aggregate_phy_steps=aggregate_phy_steps,
@@ -73,7 +81,9 @@ class HoverResidualAviary(BaseResidualAviary):
                          act=act,
                          wind_model=wind_model,
                          wind_force=wind_force,
-                         use_normalize=use_normalize)
+                         use_normalize=use_normalize,
+                         rate_residual_scale=rate_residual_scale,
+                         thrust_residual_scale=thrust_residual_scale)
         self.TARGET_POS = target_pos
 
     ################################################################################
@@ -179,7 +189,7 @@ class HoverResidualAviary(BaseResidualAviary):
             normalized_pos_xy, normalized_pos_z, state[3:7], normalized_rp,
             normalized_y, normalized_vel_xy, normalized_vel_z,
             normalized_ang_vel
-        ]).reshape(16, )    # no rpms
+        ]).reshape(16, )  # no rpms
 
         return norm_and_clipped
 
