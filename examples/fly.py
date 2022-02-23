@@ -54,7 +54,7 @@ if __name__ == "__main__":
     ARGS = parser.parse_args()
 
     #### Initialize the simulation #############################
-    H = .1
+    H = 0.2
     H_STEP = .05
     R = .3
     INIT_XYZS = np.array([[R*np.cos((i/6)*2*np.pi+np.pi/2), R*np.sin((i/6)*2*np.pi+np.pi/2)-R, H+i*H_STEP] for i in range(ARGS.num_drones)])
@@ -189,8 +189,8 @@ if __name__ == "__main__":
     env.close()
 
     #### Save the simulation results ###########################
-    logger.save()
-    logger.save_as_csv("pid") # Optional CSV save
+    #logger.save()
+    #logger.save_as_csv("pid") # Optional CSV save
 
     #### Plot the simulation results ###########################
     if ARGS.plot:

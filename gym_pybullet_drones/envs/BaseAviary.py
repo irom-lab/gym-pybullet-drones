@@ -34,6 +34,9 @@ class Physics(Enum):
     PYB_GND = "pyb_gnd"  # PyBullet physics update with ground effect
     PYB_WIND = "pyb_wind"  # PyBullet physics update with wind #!
     PYB_DRAG = "pyb_drag"  # PyBullet physics update with drag
+    PYB_WIND_AERO_DRAG = "pyb_wind_aero_drag"           # PyBullet physics update with aerodynamic drag forces
+    PYB_WIND_BF_DRAG = "pyb_wind_bf_drag"               # PyBullet physics update with blade flapping external moments
+    PYB_WIND_AERO_BF_DRAG = "pyb_wind_aero_bf_drag"     # PyBullet physics update with aerodynamic drag forces and blade flapping external moments
     PYB_DW = "pyb_dw"  # PyBullet physics update with downwash
     PYB_GND_DRAG_DW = "pyb_gnd_drag_dw"  # PyBullet physics update with ground effect, drag, and downwash
 
@@ -82,7 +85,8 @@ class BaseAviary(gym.Env):
         dynamics_attributes=False,
         # wind
         wind_model='simple',
-        wind_force=[0, 0, 0],
+        wind_force=[0, 0, 0], #used in _drag function (to be depreciated)
+        wind_vector=np.array([1.1, 0, 0]).reshape((3,1)), #used in _wind_aero_... functions
     ):
         """Initialization of a generic aviary environment.
 
@@ -121,6 +125,7 @@ class BaseAviary(gym.Env):
         #! Wind
         self.WIND_MODEL = wind_model
         self.WIND_FORCE = wind_force
+        self.WIND_VECTOR = wind_vector
 
         #### Constants #############################################
         self.G = 9.8
@@ -129,6 +134,26 @@ class BaseAviary(gym.Env):
         self.SIM_FREQ = freq
         self.TIMESTEP = 1. / self.SIM_FREQ
         self.AGGR_PHY_STEPS = aggregate_phy_steps
+        # Constants for WIND_AERO_DRAG
+        self.rho = 1.225 #Density of air [kg/m^3]
+        # Constants for BLADE_FLAPPING NCHECK: should these be self.?
+        self.lambda0 = 0.075 #Average inflow ratio
+        self.th0 = np.radians(16) #Root angle of attack [rad]
+        self.thtw = np.radians(-6.6) #Blade twist [rad]
+        self.k_beta = 3 #Hinge spring constant [N.m/rad]
+        self.nu_beta = 1.9 #Blade scaled natural frequency (listed as 1.9 on p.4 of 2016, 1.5 in 2020
+        self.gamma = 1.04 #Lock number
+        # Vehicle Constants [NCHECK: Should eventually encode this in urdf]
+        self.Af = 0.02 #Quadrotor frontal area [m^2]
+        self.Cd = 0.8 #Quadrotor drag coefficient
+        self.Nr = 4 #Number of rotors
+        self.Nb = 2 #Number of blades
+        self.c = 0.015 #Chord length m
+        self.Cla = 2*np.pi #Airfoil lift slope
+        self.alpha_ind = np.arctan(self.lambda0/0.75) #approximation, induced angle of attack [rad]
+        self.alpha_eff = self.th0 + (3/4)*self.thtw - self.alpha_ind #effective angle of attack [rad]
+        self.rbar = 0.0635 #rotor blade length [m] ##NOT SURE IF ROTOR BLADE LENGTH = ROTOR RADIUS !!
+
         #### Parameters ############################################
         self.NUM_DRONES = num_drones
         self.NEIGHBOURHOOD_RADIUS = neighbourhood_radius
@@ -238,10 +263,16 @@ class BaseAviary(gym.Env):
                     p.COV_ENABLE_SEGMENTATION_MARK_PREVIEW
             ]:
                 p.configureDebugVisualizer(i, 0, physicsClientId=self.CLIENT)
-            p.resetDebugVisualizerCamera(cameraDistance=3,
+            #original
+            # p.resetDebugVisualizerCamera(cameraDistance=3,
+            #                              cameraYaw=-30,
+            #                              cameraPitch=-30,
+            #                              cameraTargetPosition=[0, 0, 0],
+            #                              physicsClientId=self.CLIENT)
+            p.resetDebugVisualizerCamera(cameraDistance=1,
                                          cameraYaw=-30,
                                          cameraPitch=-30,
-                                         cameraTargetPosition=[0, 0, 0],
+                                         cameraTargetPosition=[.15, -.15, .2],
                                          physicsClientId=self.CLIENT)
             ret = p.getDebugVisualizerCamera(physicsClientId=self.CLIENT)
             print("viewMatrix", ret[2])
@@ -443,6 +474,16 @@ class BaseAviary(gym.Env):
                 elif self.PHYSICS == Physics.PYB_DRAG:
                     self._physics(clipped_action[i, :], i)
                     self._drag(self.last_clipped_action[i, :], i)
+                elif self.PHYSICS == Physics.PYB_WIND_AERO_DRAG:
+                    self._physics(clipped_action[i, :], i)
+                    self._wind_aero_drag(self.last_clipped_action[i, :], i, self.WIND_VECTOR) # clipped vs. last clipped?
+                elif self.PHYSICS == Physics.PYB_WIND_BF_DRAG:
+                    self._physics(clipped_action[i, :], i)
+                    self._wind_bf_drag(self.last_clipped_action[i, :], i, self.WIND_VECTOR)
+                elif self.PHYSICS == Physics.PYB_WIND_AERO_BF_DRAG:
+                    self._physics(clipped_action[i, :], i)
+                    self._wind_aero_drag(self.last_clipped_action[i, :], i, self.WIND_VECTOR)
+                    self._wind_bf_drag(self.last_clipped_action[i, :], i, self.WIND_VECTOR)
                 elif self.PHYSICS == Physics.PYB_DW:
                     self._physics(clipped_action[i, :], i)
                     self._downwash(i)
@@ -554,6 +595,7 @@ class BaseAviary(gym.Env):
         in the `reset()` function.
 
         """
+        print(self.FIXED_INIT_POS)
         if self.FIXED_INIT_POS is not None:
             init_pos = self.FIXED_INIT_POS
             init_rpy = [[0, 0, 0]]
@@ -951,6 +993,152 @@ class BaseAviary(gym.Env):
                              physicsClientId=self.CLIENT)
 
     ################################################################################
+
+    def _wind_aero_drag(self,
+              rpm,
+              nth_drone,
+              wind_vector_inertial
+              ):
+        """PyBullet implementation of aerodynamic drag forces due to wind.
+        from: Craig, William, Derrick Yeo, and Derek A. Paley. "Geometric attitude and position control of a quadrotor in wind." Journal of Guidance, Control, and Dynamics 43.5 (2020): 870-883.
+        Parameters
+        ----------
+        rpm : ndarray
+            (4)-shaped array of ints containing the RPMs values of the 4 motors.
+        nth_drone : int
+            The ordinal number/position of the desired drone in list self.DRONE_IDS.
+        wind_vector_inertial : ndarray
+            (3,1)-shaped array of floats describing the wind vector in the inertial frame
+        """
+        # Operational Variables
+        #omega_j = 8000 #Propeller nominal angular velocity [RPM]
+        omega_j = np.mean(rpm) #Average propeller angular velocity [RPM]
+        # NCHECK: Eventually, convert to use individual motor rpms
+
+
+        #### Rotation matrix of the base ###########################
+        base_rot = np.array(p.getMatrixFromQuaternion(self.quat[nth_drone, :])).reshape(3, 3)
+        #print("base_rot:")
+        #print(base_rot)
+        wind_vector = np.matmul(np.linalg.inv(base_rot),wind_vector_inertial) #Body Frame
+        #print("wind_vector: [INERTIAL_FRAME]")
+        #print(wind_vector_inertial)
+        #print("wind_vector: [BODY_FRAME]")
+        #print(wind_vector)
+
+        #### Bluff Body Drag
+        f_bluff = 0.5*self.rho*np.linalg.norm(wind_vector)*self.Af*self.Cd*wind_vector
+        #print("f_bluff: [BODY_FRAME]")
+        #print(f_bluff)
+        #### Induced Drag
+        # rotate wind_vector into BODY_FRAME
+        # project wind_vector onto b1xb2 plane
+        # (in Paley, V_infty \cdot U1 = wind vector projection)
+
+        #Extract wind frame axis
+        U1 = self._wind_frame(wind_vector)[:,0].reshape((3,1))
+        f_ind = 0.0
+        #Calculate induced drag for each propeller
+        for i in range(4):
+            omega_j = rpm[i]
+            #print('RPM')
+            #print(omega_j)
+            #don't multiply by self.Nr (number of rotors)
+            f_ind += self.Nb/4*self.rho*self.c*self.Cla*self.alpha_eff*np.sin(self.alpha_ind)*omega_j*self.rbar**2*(np.dot(wind_vector.reshape((3,)),U1.reshape((3,))))*U1
+        #print("f_ind: [BODY_FRAME]")
+        #print(f_ind)
+
+        #### Total Aerodynamic Drag
+        f_aero = f_bluff + f_ind
+        #print("f_aero: [BODY_FRAME]")
+        #print(f_aero)
+        p.applyExternalForce(self.DRONE_IDS[nth_drone],
+                             4,
+                             forceObj=f_aero,
+                             posObj=[0, 0, 0],
+                             flags=p.LINK_FRAME,
+                             physicsClientId=self.CLIENT
+                             )
+        # [NCHECK: Are external forces all applied in the inertial frame? vs. body frame?]
+    ################################################################################
+
+    def _wind_bf_drag(self,
+              rpm,
+              nth_drone,
+              wind_vector_inertial
+              ):
+        """PyBullet implementation of blade flapping moment forces due to wind.
+        from: Craig, William, Derrick Yeo, and Derek A. Paley. "Geometric attitude and position control of a quadrotor in wind." Journal of Guidance, Control, and Dynamics 43.5 (2020): 870-883.
+        Parameters
+        ----------
+        rpm : ndarray
+            (4)-shaped array of ints containing the RPMs values of the 4 motors.
+        nth_drone : int
+            The ordinal number/position of the desired drone in list self.DRONE_IDS.
+        wind_vector_inertial : ndarray
+            (3,1)-shaped array of floats describing the wind vector in the [inertial frame]
+        """
+
+        # Operational Variables
+        omega_j = 8000 #Propeller nominal angular velocity [RPM]
+        v_tip = omega_j*2*np.pi/60*self.rbar #Propeller tip speed velocity [m/s]
+        #### Rotation matrix of the base ###########################
+        base_rot = np.array(p.getMatrixFromQuaternion(self.quat[nth_drone, :])).reshape(3, 3)
+        wind_vector = np.matmul(np.linalg.inv(base_rot),wind_vector_inertial) #Body Frame
+        #### Determine Wind Frame Axes [NCHECK: Fix This]
+        U1 = self._wind_frame(wind_vector)[:,0].reshape((3,1))
+        U2 = self._wind_frame(wind_vector)[:,1].reshape((3,1))
+        #### Calculate Blade Flapping Variables
+        mu = np.linalg.norm(wind_vector)/v_tip #Advance ratio
+        chi = np.arctan(mu/self.lambda0) #
+        k_lambda_x = 15*np.pi/23*np.tan(chi/2) #Glauert longitudinal inflow gradient (also k_x)
+
+        beta_1c = -self.gamma/(8*(self.nu_beta**2-1))*self.lambda0*k_lambda_x
+        beta_1s = mu*self.gamma/(4*(self.nu_beta**2-1))*(4/3*self.th0+self.thtw-self.lambda0)
+            
+        beta_max = np.sqrt(beta_1c**2 + beta_1s**2)
+        # NCHECK: Is there a better way than to apply this conditional?
+        if np.linalg.norm(wind_vector) == 0:
+            phi_d = 0
+        else:
+            phi_d = np.arctan(beta_1s/beta_1c)-np.pi/2
+        #### Calculate Single Hub Moment
+        M_single_hub = self.Nb/2*self.k_beta*beta_max*(np.cos(phi_d)*U1+np.sin(phi_d)*U2)
+        #### Calculate Total Hub Moment
+        M_aero = np.array([[self.Nr*self.k_beta*beta_max*np.sin(phi_d)*np.dot(U2.reshape(3,),np.array([1,0,0]))],[self.Nr*self.k_beta*beta_max*np.sin(phi_d)*np.dot(U2.reshape(3,),np.array([0,1,0]))],[0]])
+        # NCHECK: Need to check frames
+        print('M_AERO: [BODY_FRAME]')
+        print(M_aero)
+        p.applyExternalTorque(self.DRONE_IDS[nth_drone],
+                              4,
+                              torqueObj=M_aero,
+                              flags=p.LINK_FRAME,
+                              physicsClientId=self.CLIENT
+                              )
+    
+    ################################################################################
+    def _wind_frame(self, V_infty: np.ndarray) -> np.ndarray:
+        """
+        This function returns the rotation matrix between wind frame (u1-u2-b3) and body frame.
+        That is, the columns of WIND_FRAME are U1, U2, U3.
+        Note, U1 is the projection if V_infty onto the rotor hub plane (b1xb2)
+        U2 = U1 x U3
+        U3 = b3
+        
+        param@ V_infty: np.ndarray of shape (3,1), wind velocity vector [m/s] in BODY_FRAME coordinates
+        return@ WIND_FRAME: np.ndarray of shape (3,3), columns of which are U1, U2, U3
+        """
+        U3 = np.array([0, 0, 1]).reshape((3,1)) # U3 = e3 in body coordinates
+        U1 = np.zeros([3,1])
+        U1[0:2] = V_infty[0:2] #Extract horizontal components of V_infty (ignore V_infty[2])
+        if np.linalg.norm(U1) != 0:
+            U1 = U1 / np.linalg.norm(U1) #Normalize U1
+        U2 = -np.cross(U1,U3, axis = 0) #Determine U2 from cross product
+        
+        return np.hstack((U1, np.hstack((U2,U3)))) #Horizontal concatenation
+
+    ################################################################################
+
 
     def _downwash(self, nth_drone):
         """PyBullet implementation of a ground effect model.
