@@ -7,6 +7,7 @@ logs/
 # NumPy saves and videos
 files/logs/*.npy
 files/videos/*.mp4
+*.mp4
 
 # Learning results
 experiments/learning/results/save-*
