@@ -24,9 +24,8 @@ class CtrlAviary(BaseAviary):
             record=False,
             obstacles=False,
             user_debug_gui=True,
-            # wind
-            wind_model='simple',
-            wind_force=[0, 0, 0]):
+            **kwargs
+            ):
         """Initialization of an aviary environment for control applications.
 
         Parameters
@@ -70,8 +69,7 @@ class CtrlAviary(BaseAviary):
                          record=record,
                          obstacles=obstacles,
                          user_debug_gui=user_debug_gui,
-                         wind_model=wind_model,
-                         wind_force=wind_force)
+                         )
 
     ################################################################################
 
