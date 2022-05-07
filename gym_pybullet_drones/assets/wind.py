@@ -3,7 +3,8 @@ import pybullet as p
 
 
 class Wind():
-    """Base class for "drone aviary" Gym environments."""
+    """Class for all wind models. Relying on the child also inheriting BaseAviary class for some class attributes used here.
+    """
 
     ################################################################################
 
@@ -52,6 +53,7 @@ class Wind():
         else:
             raise "Unknown wind model!"
     
+
     ################################################################################
     def _wind_frame(self, V_infty: np.ndarray) -> np.ndarray:
         """
