@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 
 from gym_pybullet_drones.envs.BaseAviary import DroneModel, Physics
 from gym_pybullet_drones.envs.CtrlAviary import CtrlAviary
+from gym_pybullet_drones.envs.WindAviary import WindCtrlAviary
 from gym_pybullet_drones.control.DSLPIDControl import DSLPIDControl
 from gym_pybullet_drones.control.PX4Control import PX4Control
 from gym_pybullet_drones.utils.Logger import Logger
@@ -28,7 +29,7 @@ if __name__ == "__main__":
 
     #
     ARGS.drone = DroneModel.X500  # CF2X
-    ARGS.physics = Physics.PYB_WIND
+    ARGS.physics = Physics.PYB
     ARGS.obstacles = False
 
     ARGS.aggregate = True
@@ -41,8 +42,8 @@ if __name__ == "__main__":
     ARGS.plot = True
     ARGS.user_debug_gui = False
 
-    wind_model = 'simple'
-    wind_force = [0, 0, 0]
+    wind_model = 'basic'
+    wind_force = [1000, 0, 0]
 
     #### Initialize the simulation #############################
     H = 1.0
@@ -70,7 +71,8 @@ if __name__ == "__main__":
     wp_counters = np.array([0])
 
     #### Create the environment with or without video capture ##
-    env = CtrlAviary(
+    # env = CtrlAviary(
+    env = WindCtrlAviary(
         drone_model=ARGS.drone,
         num_drones=1,
         fixed_init_pos=INIT_XYZS,
@@ -86,7 +88,8 @@ if __name__ == "__main__":
         user_debug_gui=ARGS.user_debug_gui,
         # wind
         wind_model=wind_model,
-        wind_force=wind_force)
+        wind_force=wind_force
+        )
 
     #### Obtain the PyBullet Client ID from the environment ####
     PYB_CLIENT = env.getPyBulletClient()
