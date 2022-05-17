@@ -230,16 +230,10 @@ class BaseAviary(gym.Env):
                     p.COV_ENABLE_SEGMENTATION_MARK_PREVIEW
             ]:
                 p.configureDebugVisualizer(i, 0, physicsClientId=self.CLIENT)
-            #original
-            # p.resetDebugVisualizerCamera(cameraDistance=3,
-            #                              cameraYaw=-30,
-            #                              cameraPitch=-30,
-            #                              cameraTargetPosition=[0, 0, 0],
-            #                              physicsClientId=self.CLIENT)
-            p.resetDebugVisualizerCamera(cameraDistance=1,
+            p.resetDebugVisualizerCamera(cameraDistance=3,
                                          cameraYaw=-30,
                                          cameraPitch=-30,
-                                         cameraTargetPosition=[.15, -.15, .2],
+                                         cameraTargetPosition=[0, 0, 0],
                                          physicsClientId=self.CLIENT)
             ret = p.getDebugVisualizerCamera(physicsClientId=self.CLIENT)
             print("viewMatrix", ret[2])
@@ -451,7 +445,10 @@ class BaseAviary(gym.Env):
                 
                 # ! Apply wind model if class attribute exists
                 if hasattr(self, 'wind_model'):
-                    print('here')
+                    print('here (BaseAviary')
+                    wall_clock_time = time.time() - self.RESET_TIME
+                    gust = self.wind_function(wall_clock_time, 3, 0)
+                    self.wind_force[0] = 1000*gust
                     self.apply_wind(rpm=self.last_clipped_action[i, :],
                                     nth_drone=i)
 

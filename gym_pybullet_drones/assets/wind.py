@@ -93,6 +93,8 @@ class Wind():
             The ordinal number/position of the desired drone in list self.DRONE_IDS.
 
         """
+        print(wind_force)
+        print(self.wind_force)
         if not wind_force: wind_force = self.wind_force
         base_rot = np.array(
             p.getMatrixFromQuaternion(self.quat[nth_drone, :])).reshape(
@@ -104,6 +106,9 @@ class Wind():
             drag_factors *
             np.array(self.vel[nth_drone, :] + wind_force)
         )  # vel and wind in global frame, drag in local frame
+        print('here (wind.py)')
+        print('wind force = ' + str(wind_force))
+        print('drag = '+ str(drag))
         p.applyExternalForce(self.DRONE_IDS[nth_drone],
                                 4,
                                 forceObj=drag,

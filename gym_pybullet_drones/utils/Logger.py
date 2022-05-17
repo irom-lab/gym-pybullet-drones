@@ -67,7 +67,8 @@ class Logger(object):
         #     (num_drones, 4, duration_sec * self.LOGGING_FREQ_HZ))
         self.controls = np.zeros(
             (num_drones, 12, duration_sec *
-             self.LOGGING_FREQ_HZ))  #### 12 control targets: pos_x,
+             self.LOGGING_FREQ_HZ))
+        #### 12 control targets: pos_x,
         # pos_y,
         # pos_z,
         # vel_x,
@@ -79,10 +80,13 @@ class Logger(object):
         # ang_vel_x,
         # ang_vel_y,
         # ang_vel_z
+        self.wind_force = np.zeros(
+            (num_drones, 3, duration_sec *
+             self.LOGGING_FREQ_HZ))
 
     ################################################################################
 
-    def log(self, drone: int, timestamp, state, control=np.zeros(12)):
+    def log(self, drone: int, timestamp, state, control=np.zeros(12),wind_force=np.zeros(3)):
         """Logs entries for a single simulation step, of a single drone.
 
         Parameters
@@ -109,6 +113,8 @@ class Logger(object):
                 (self.states, np.zeros((self.NUM_DRONES, 16, 1))), axis=2)
             self.controls = np.concatenate(
                 (self.controls, np.zeros((self.NUM_DRONES, 12, 1))), axis=2)
+            self.wind_force = np.concatenate(
+                (self.wind_force, np.zeros((self.NUM_DRONES, 3, 1))), axis=2)
         #### Advance a counter is the matrices have overgrown it ###
         elif not self.PREALLOCATED_ARRAYS and self.timestamps.shape[
                 1] > current_counter:
@@ -119,6 +125,10 @@ class Logger(object):
         self.states[drone, :, current_counter] = np.hstack(
             [state[0:3], state[10:13], state[7:10], state[13:20]])
         self.controls[drone, :, current_counter] = control
+        print('controls logger size: '+str(np.shape(self.controls)))
+        print(control)
+        print('wind force logger size: '+str(np.shape(self.wind_force)))
+        self.wind_force[drone, :, current_counter] = wind_force
         self.counters[drone] = current_counter + 1
 
     ################################################################################
@@ -293,7 +303,7 @@ class Logger(object):
         plt.rc('axes',
                prop_cycle=(cycler('color', ['r', 'g', 'b', 'y']) +
                            cycler('linestyle', ['-', '--', ':', '-.'])))
-        fig, axs = plt.subplots(12, 2)
+        fig, axs = plt.subplots(13, 2)
         t = np.arange(0, self.timestamps.shape[1] / self.LOGGING_FREQ_HZ,
                       1 / self.LOGGING_FREQ_HZ)
 
@@ -516,6 +526,15 @@ class Logger(object):
                                label="drone_" + str(j))
         axs[row, col].set_xlabel('time')
         axs[row, col].set_ylabel('t_z')
+
+        ### Wind Force ###############################################
+        row = 12
+        col = 0
+        for j in range(self.NUM_DRONES):
+            axs[row, col].plot(t,
+                               self.wind_force[j, 0, :])
+        axs[row, col].set_xlabel('time')
+        axs[row, col].set_ylabel('wind_force')
 
         #### Drawing options #######################################
         for i in range(12):

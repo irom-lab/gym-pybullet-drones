@@ -58,15 +58,16 @@ if __name__ == "__main__":
     PERIOD = 10
     NUM_WP = ARGS.control_freq_hz * PERIOD
     TARGET_POS = np.zeros((NUM_WP, 3))
-    for i in range(NUM_WP):  # around [R, 0]
-        # TARGET_POS[i, :] = R * np.cos(
-        #     (i / NUM_WP) *
-        #     (2 * np.pi) + np.pi) + INIT_XYZS[0, 0] + R, R * np.sin(
-        #         (i / NUM_WP) * (2 * np.pi) + np.pi) + INIT_XYZS[0, 1], 0
-        # TARGET_POS[i, :] = 0.0, 0.0, H
-        TARGET_POS[i, :] = 0.005 * i, 0.005 * i, H
+    # for i in range(NUM_WP):  # around [R, 0]
+    #     # TARGET_POS[i, :] = R * np.cos(
+    #     #     (i / NUM_WP) *
+    #     #     (2 * np.pi) + np.pi) + INIT_XYZS[0, 0] + R, R * np.sin(
+    #     #         (i / NUM_WP) * (2 * np.pi) + np.pi) + INIT_XYZS[0, 1], 0
+    #     # TARGET_POS[i, :] = 0.0, 0.0, H
+    #     TARGET_POS[i, :] = 0.005 * i, 0.005 * i, H
     fig = plt.figure()
     plt.scatter(TARGET_POS[:, 0], TARGET_POS[:, 1])
+    plt.title('Target Position: Point')
     plt.show()
     wp_counters = np.array([0])
 
@@ -139,6 +140,7 @@ if __name__ == "__main__":
         time.sleep(0.1)
 
         #### Log the simulation ####################################
+        print('logger = ' + str(wind_force))
         logger.log(drone=0,
                    timestamp=i / env.SIM_FREQ,
                    state=obs[str(0)]["state"],
@@ -146,7 +148,9 @@ if __name__ == "__main__":
                        TARGET_POS[wp_counters[0], 0:2], INIT_XYZS[0, 2],
                        INIT_RPYS[0, :],
                        np.zeros(6)
-                   ]))
+                   ]),
+                   wind_force=wind_force
+                   )
 
         #### Printout ##############################################
         if i % env.SIM_FREQ == 0:
