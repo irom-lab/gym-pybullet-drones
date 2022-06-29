@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 
-<robot name="cf2">
+<robot name="x500">
 
   <properties arm="0.25" kf="1e-7" km="2e-9" thrust2weight="3" max_speed_kmh="30" gnd_eff_coeff="11.36859" prop_radius="2.31348e-2" drag_coeff_xy="9.1785e-7" drag_coeff_z="10.311e-7" dw_coeff_1="2267.18" dw_coeff_2=".16" dw_coeff_3="-.11" />
 
@@ -9,6 +9,7 @@
     <inertial>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <!-- <origin rpy="0 0 0" xyz="-0.006 0.006 0"/> -->
+      <!-- <mass value="1.2105"/> -->
       <mass value="1.2105"/>
       <inertia ixx="2.25e-2" ixy="0.0" ixz="0.0" iyy="2.25e-2" iyz="0.0" izz="3.06e-2"/>
     </inertial>

@@ -1,7 +1,7 @@
 """Script demonstrating the joint use of simulation and control.
 
 The simulation is run by a `CtrlAviary` or `VisionAviary` environment.
-The control is given by the PID implementation in `DSLPIDControl`.
+The control is given by the PID implementation in `DSLPIDControl` -> substituted to PX4Control
 
 Example
 -------
@@ -30,6 +30,7 @@ from gym_pybullet_drones.envs.BaseAviary import DroneModel, Physics
 from gym_pybullet_drones.envs.CtrlAviary import CtrlAviary
 from gym_pybullet_drones.envs.VisionAviary import VisionAviary
 from gym_pybullet_drones.control.DSLPIDControl import DSLPIDControl
+from gym_pybullet_drones.control.PX4Control import PX4Control
 from gym_pybullet_drones.control.SimplePIDControl import SimplePIDControl
 from gym_pybullet_drones.utils.Logger import Logger
 from gym_pybullet_drones.utils.utils import sync, str2bool
@@ -128,8 +129,12 @@ if __name__ == "__main__":
                     )
 
     #### Initialize the controllers ############################
-    if ARGS.drone in [DroneModel.CF2X, DroneModel.CF2P]:
+    if ARGS.drone in [DroneModel.CF2X, DroneModel.CF2P, DroneModel.X500]:
         ctrl = [DSLPIDControl(drone_model=ARGS.drone) for i in range(ARGS.num_drones)]
+        # ctrl = [
+        #     PX4Control(drone_model=ARGS.drone, Ts=AGGR_PHY_STEPS / env.SIM_FREQ) for i in range(ARGS.num_drones)
+        # ]
+        # ctrl = [PX4Control(drone_model=ARGS.drone) for i in range(ARGS.num_drones)]
     elif ARGS.drone in [DroneModel.HB]:
         ctrl = [SimplePIDControl(drone_model=ARGS.drone) for i in range(ARGS.num_drones)]
 
@@ -156,6 +161,13 @@ if __name__ == "__main__":
                                                                        # target_pos=INIT_XYZS[j, :] + TARGET_POS[wp_counters[j], :],
                                                                        target_rpy=INIT_RPYS[j, :]
                                                                        )
+                # action[str(0)], _, _ = ctrl[0].computeControlFromState(
+                #     control_timestep=CTRL_EVERY_N_STEPS * env.TIMESTEP,
+                #     state=obs[str(0)]["state"],
+                #     target_pos=np.hstack(
+                #         [TARGET_POS[wp_counters[0], 0:2], INIT_XYZS[0, 2]]),
+                #     # target_rpy=INIT_RPYS[0, :]
+                # )
 
             #### Go to the next way point and loop #####################
             for j in range(ARGS.num_drones): 

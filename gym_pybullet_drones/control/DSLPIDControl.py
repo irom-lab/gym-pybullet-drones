@@ -28,7 +28,7 @@ class DSLPIDControl(BaseControl):
 
         """
         super().__init__(drone_model=drone_model, g=g)
-        if self.DRONE_MODEL != DroneModel.CF2X and self.DRONE_MODEL != DroneModel.CF2P:
+        if self.DRONE_MODEL != DroneModel.CF2X and self.DRONE_MODEL != DroneModel.X500 and self.DRONE_MODEL != DroneModel.CF2P:
             print(
                 "[ERROR] in DSLPIDControl.__init__(), DSLPIDControl requires DroneModel.CF2X or DroneModel.CF2P"
             )
@@ -43,7 +43,7 @@ class DSLPIDControl(BaseControl):
         self.PWM2RPM_CONST = 4070.3
         self.MIN_PWM = 20000
         self.MAX_PWM = 65535
-        if self.DRONE_MODEL == DroneModel.CF2X:
+        if self.DRONE_MODEL == DroneModel.CF2X or self.DRONE_MODEL == DroneModel.X500:
             self.MIXER_MATRIX = np.array([[.5, -.5, -1], [.5, .5, 1],
                                           [-.5, .5, -1], [-.5, -.5, 1]])
         elif self.DRONE_MODEL == DroneModel.CF2P:

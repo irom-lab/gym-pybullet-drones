@@ -28,7 +28,7 @@ if __name__ == "__main__":
 
     #
     ARGS.drone = DroneModel.X500  # CF2X
-    ARGS.physics = Physics.PYB_WIND
+    ARGS.physics = Physics.PYB_WIND_AERO_DRAG
     ARGS.obstacles = False
 
     ARGS.aggregate = True
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     ARGS.user_debug_gui = False
 
     wind_model = 'simple'
-    wind_force = [0, 0, 0]
+    wind_force = [100, 0, 0]
 
     #### Initialize the simulation #############################
     H = 1.0
@@ -62,8 +62,8 @@ if __name__ == "__main__":
         #     (i / NUM_WP) *
         #     (2 * np.pi) + np.pi) + INIT_XYZS[0, 0] + R, R * np.sin(
         #         (i / NUM_WP) * (2 * np.pi) + np.pi) + INIT_XYZS[0, 1], 0
-        # TARGET_POS[i, :] = 0.0, 0.0, H
-        TARGET_POS[i, :] = 0.005 * i, 0.005 * i, H
+        TARGET_POS[i, :] = 0.0, 0.0, H
+        #TARGET_POS[i, :] = 0.005 * i, 0.005 * i, H #linear
     fig = plt.figure()
     plt.scatter(TARGET_POS[:, 0], TARGET_POS[:, 1])
     plt.show()
@@ -118,7 +118,7 @@ if __name__ == "__main__":
 
             #### Compute control for the current way point #############
             action[str(0)], _, _ = ctrl[0].computeControlFromState(
-                control_timestep=CTRL_EVERY_N_STEPS * env.TIMESTEP,
+                #control_timestep=CTRL_EVERY_N_STEPS * env.TIMESTEP,
                 state=obs[str(0)]["state"],
                 target_pos=np.hstack(
                     [TARGET_POS[wp_counters[0], 0:2], INIT_XYZS[0, 2]]),
