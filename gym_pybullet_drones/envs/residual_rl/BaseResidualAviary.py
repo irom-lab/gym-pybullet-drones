@@ -35,6 +35,8 @@ class BaseResidualAviary(BaseAviary):
         initial_xyzs=None,
         initial_rpys=None,
         fixed_init_pos=None,
+        init_xy_range=[0, 0],
+        init_z_range=[1, 1],
         physics: Physics = Physics.PYB,
         freq: int = 240,
         aggregate_phy_steps: int = 1,
@@ -48,6 +50,9 @@ class BaseResidualAviary(BaseAviary):
         wind_model='simple',
         wind_force=[0, 0, 0],
         use_normalize=False,
+        # residual
+        rate_residual_scale=0.1,
+        thrust_residual_scale=1.0,
     ):
         """Initialization of a generic single agent RL environment.
 
@@ -85,8 +90,8 @@ class BaseResidualAviary(BaseAviary):
         self.USE_NORMALIZE = use_normalize
         self.EPISODE_LEN_SEC = episode_len_sec
         Ts = aggregate_phy_steps / freq
-        self.rate_residual_scale = 0.1
-        self.thrust_residual_scale = 1.0
+        self.rate_residual_scale = rate_residual_scale
+        self.thrust_residual_scale = thrust_residual_scale
 
         #### Create integrated controllers #########################
         self.ctrl = PX4Control(drone_model=drone_model, Ts=Ts)
@@ -96,6 +101,8 @@ class BaseResidualAviary(BaseAviary):
             initial_xyzs=initial_xyzs,
             initial_rpys=initial_rpys,
             fixed_init_pos=fixed_init_pos,
+            init_xy_range=init_xy_range,
+            init_z_range=init_z_range,
             physics=physics,
             freq=freq,
             aggregate_phy_steps=aggregate_phy_steps,

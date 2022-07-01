@@ -25,20 +25,20 @@ from gym_pybullet_drones.envs.BaseAviary import DroneModel, Physics
 from gym_pybullet_drones.envs.residual_rl.BaseResidualAviary import ActionType
 
 if __name__ == "__main__":
-    log_dir = 'logs/test_hover_wind_res_ppo_v0/'
+    log_dir = 'logs/test_hover_wind_res_sac_v1/'
 
     n_envs = 1
     episode_len_sec = 5
-    fixed_init_pos = [[0, 0, 1.0]]
+    fixed_init_valid = [[0, 0, 1.0]]  #!
     wind_model = 'simple'
     wind_force = [100, 0, 0]
     aggregate_phy_steps = 5
     act = ActionType.RES
     use_normalize = True
     total_timesteps = 500000
-    learning_rate = 1e-3
-    ent_coef = 1.0  # 'auto
     model_type = log_dir.split('_')[-2]
+    rate_residual_scale = 0.1
+    thrust_residual_scale = 1.0
 
     env_kwargs = dict(
         drone_model=DroneModel.X500,
@@ -48,7 +48,9 @@ if __name__ == "__main__":
         wind_model=wind_model,
         wind_force=wind_force,
         use_normalize=use_normalize,
-        fixed_init_pos=fixed_init_pos)
+        fixed_init_pos=fixed_init_valid,
+        rate_residual_scale=rate_residual_scale,
+        thrust_residual_scale=thrust_residual_scale)
 
     # #### Check the environment's spaces ########################
     env = make_vec_env(HoverResidualAviary,
@@ -73,7 +75,7 @@ if __name__ == "__main__":
         wind_model=wind_model,
         wind_force=wind_force,
         use_normalize=use_normalize,
-        fixed_init_pos=fixed_init_pos,
+        fixed_init_pos=fixed_init_valid,
     )
     pb_logger = Logger(logging_freq_hz=int(env.SIM_FREQ / env.AGGR_PHY_STEPS),
                        num_drones=1)
@@ -86,13 +88,15 @@ if __name__ == "__main__":
 
         action = np.array([0.0, 0.0, 0.0, 0.0])
         obs, reward, done, info = env.step(action)
+        raw_obs = info['raw_obs']
         pb_logger.log(
             drone=0,
             timestamp=i / env.SIM_FREQ,
-            state=np.hstack(
-                [obs[0:3],
-                 np.zeros(4), obs[3:15],
-                 np.resize(action, (4))]),
+            state=np.hstack([
+                raw_obs[0:3],
+                np.zeros(4), raw_obs[3:15],
+                np.resize(action, (4))
+            ]),
             # control=action,
             control=np.zeros(12),
         )
