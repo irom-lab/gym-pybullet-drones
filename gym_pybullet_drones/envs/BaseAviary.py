@@ -445,7 +445,6 @@ class BaseAviary(gym.Env):
                 
                 # ! Apply wind model if class attribute exists
                 if hasattr(self, 'wind_model'):
-                    print('here (BaseAviary')
                     wall_clock_time = time.time() - self.RESET_TIME
                     gust = self.wind_function(wall_clock_time, 3, 0)
                     self.wind_force[0] = 1000*gust

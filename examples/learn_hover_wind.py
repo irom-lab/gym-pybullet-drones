@@ -15,7 +15,7 @@ from stable_baselines3.common.logger import configure
 from stable_baselines3.common.env_util import make_vec_env
 
 from gym_pybullet_drones.utils.Logger import Logger
-from gym_pybullet_drones.envs.single_agent_rl.HoverAviary import HoverAviary
+from gym_pybullet_drones.envs.WindHoverAviary import WindHoverAviary
 from gym_pybullet_drones.utils.utils import sync, ensure_directory_hard
 from gym_pybullet_drones.envs.BaseAviary import DroneModel, Physics
 from gym_pybullet_drones.envs.single_agent_rl.BaseSingleAgentAviary import ActionType
@@ -23,7 +23,7 @@ from gym_pybullet_drones.envs.single_agent_rl.BaseSingleAgentAviary import Actio
 if __name__ == "__main__":
 
     #### Save directory ########################################
-    log_dir = 'logs/test_hover_wind_dyn_ppo_v6/'
+    log_dir = '/home/nate/Documents/gym_logs/test_hover_wind_dyn_ppo_v6/'
     model_type = log_dir.split('_')[-2]
     ensure_directory_hard(log_dir)
 
@@ -32,7 +32,7 @@ if __name__ == "__main__":
     n_envs = 4
     fixed_init_train = None
     fixed_init_valid = [[0, 0, 0.1]]
-    wind_model = 'simple'
+    wind_model = 'basic'
     wind_force = [10, 0, 0]
     aggregate_phy_steps = 5
     act = ActionType.DYN  # ONE_D_RPM, RPM
@@ -40,7 +40,7 @@ if __name__ == "__main__":
     env_kwargs = dict(
         act=act,
         aggregate_phy_steps=aggregate_phy_steps,
-        physics=Physics.PYB_WIND,  # Drag model in PyBullet, added wind),
+        physics=Physics.PYB,  # PYB_WIND is deprecated
         wind_model=wind_model,
         wind_force=wind_force,
         use_normalize=use_normalize,
@@ -64,7 +64,7 @@ if __name__ == "__main__":
     ent_coef = 5.0
 
     # #### Check the environment's spaces ########################
-    env = make_vec_env(HoverAviary,
+    env = make_vec_env(WindHoverAviary,
                        env_kwargs=env_kwargs,
                        n_envs=n_envs,
                        seed=0)
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     # Separate evaluation env
     env_kwargs['fixed_init_pos'] = fixed_init_valid
     eval_env = make_vec_env(
-        HoverAviary,
+        WindHoverAviary,
         env_kwargs=env_kwargs,
         n_envs=2,  # n_eval_episodes=10 default
         seed=0)

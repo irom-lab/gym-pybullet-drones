@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 
 from gym_pybullet_drones.envs.BaseAviary import DroneModel, Physics
 from gym_pybullet_drones.envs.CtrlAviary import CtrlAviary
-from gym_pybullet_drones.envs.WindAviary import WindCtrlAviary
+from gym_pybullet_drones.envs.WindCtrlAviary import WindCtrlAviary
 from gym_pybullet_drones.control.DSLPIDControl import DSLPIDControl
 from gym_pybullet_drones.control.PX4Control import PX4Control
 from gym_pybullet_drones.utils.Logger import Logger

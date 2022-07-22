@@ -125,9 +125,6 @@ class Logger(object):
         self.states[drone, :, current_counter] = np.hstack(
             [state[0:3], state[10:13], state[7:10], state[13:20]])
         self.controls[drone, :, current_counter] = control
-        print('controls logger size: '+str(np.shape(self.controls)))
-        print(control)
-        print('wind force logger size: '+str(np.shape(self.wind_force)))
         self.wind_force[drone, :, current_counter] = wind_force
         self.counters[drone] = current_counter + 1
 

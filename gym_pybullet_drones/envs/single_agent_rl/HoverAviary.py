@@ -24,10 +24,8 @@ class HoverAviary(BaseSingleAgentAviary):
             video_path=None,
             obs: ObservationType = ObservationType.KIN,
             act: ActionType = ActionType.RPM,
-            # wind
-            wind_model='simple',
-            wind_force=[0, 0, 0],
-            use_normalize=False):
+            use_normalize=False,
+            **kwargs): ## To accommodate the addition of wind args in WindHoverAviary
         """Initialization of a single agent RL environment.
 
         Using the generic single agent RL superclass.
@@ -68,8 +66,6 @@ class HoverAviary(BaseSingleAgentAviary):
                          video_path=video_path,
                          obs=obs,
                          act=act,
-                         wind_model=wind_model,
-                         wind_force=wind_force,
                          use_normalize=use_normalize)
 
     ################################################################################

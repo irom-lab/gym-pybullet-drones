@@ -53,9 +53,6 @@ class BaseSingleAgentAviary(BaseAviary):
         video_path=None,
         obs: ObservationType = ObservationType.KIN,
         act: ActionType = ActionType.RPM,
-        # wind
-        wind_model='simple',
-        wind_force=[0, 0, 0],
         use_normalize=False,
     ):
         """Initialization of a generic single agent RL environment.
@@ -142,9 +139,7 @@ class BaseSingleAgentAviary(BaseAviary):
             user_debug_gui=
             False,  # Remove of RPM sliders from all single agent learning aviaries
             vision_attributes=vision_attributes,
-            dynamics_attributes=dynamics_attributes,
-            wind_model=wind_model,
-            wind_force=wind_force)
+            dynamics_attributes=dynamics_attributes)
         #### Set a limit on the maximum target speed ###############
         if act == ActionType.VEL:
             self.SPEED_LIMIT = 0.03 * self.MAX_SPEED_KMH * (1000 / 3600)
