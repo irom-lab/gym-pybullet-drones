@@ -165,7 +165,7 @@ class BaseAviary(gym.Env):
         self.MAX_RPM = np.sqrt((self.THRUST2WEIGHT_RATIO * self.GRAVITY) /
                                (4 * self.KF))  # 21702.6 for CF
         self.MAX_THRUST = (4 * self.KF * self.MAX_RPM**2)
-        if self.DRONE_MODEL == DroneModel.CF2X:
+        if self.DRONE_MODEL in [DroneModel.CF2X, DroneModel.X500]:
             self.MAX_XY_TORQUE = (2 * self.L * self.KF *
                                   self.MAX_RPM**2) / np.sqrt(2)
         elif self.DRONE_MODEL in [DroneModel.CF2P, DroneModel.HB]:
@@ -201,7 +201,7 @@ class BaseAviary(gym.Env):
         #### Create attributes for dynamics control inputs #########
         self.DYNAMICS_ATTR = dynamics_attributes
         if self.DYNAMICS_ATTR:
-            if self.DRONE_MODEL == DroneModel.CF2X:
+            if self.DRONE_MODEL in [DroneModel.CF2X, DroneModel.X500]:
                 self.A = np.array([[1, 1, 1, 1],
                                    [
                                        1 / np.sqrt(2), 1 / np.sqrt(2),
@@ -837,6 +837,9 @@ class BaseAviary(gym.Env):
                                  posObj=[0, 0, 0],
                                  flags=p.LINK_FRAME,
                                  physicsClientId=self.CLIENT)
+        # print('rpm:')
+        # #print("{:.2f}".format(z_torque))
+        # print(rpm)
         p.applyExternalTorque(self.DRONE_IDS[nth_drone],
                               4,
                               torqueObj=[0, 0, z_torque],
@@ -974,7 +977,7 @@ class BaseAviary(gym.Env):
         force_world_frame = thrust_world_frame - np.array([0, 0, self.GRAVITY])
         z_torques = np.array(rpm**2) * self.KM
         z_torque = (-z_torques[0] + z_torques[1] - z_torques[2] + z_torques[3])
-        if self.DRONE_MODEL == DroneModel.CF2X:
+        if self.DRONE_MODEL == DroneModel.CF2X or self.DRONE_MODEL == DroneModel.X500:
             x_torque = (forces[0] + forces[1] - forces[2] -
                         forces[3]) * (self.L / np.sqrt(2))
             y_torque = (-forces[0] + forces[1] + forces[2] -
