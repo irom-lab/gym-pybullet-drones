@@ -224,7 +224,7 @@ class PX4Control(BaseControl):
         # print('Thrust sp:', self.thrust_sp)
         # print('Input: ', t)
         # # print('Nominal: ', np.sqrt(np.dot(self.mixerFMinv, t)))
-        print('RPM: ', w_cmd)
+        # print('RPM: ', w_cmd)
         return w_cmd, None, None
 
     ################################################################################

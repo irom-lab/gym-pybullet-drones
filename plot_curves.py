@@ -74,7 +74,7 @@ def check_train(trial_path):
     # ax3.legend()
     # ax4.legend()
     # ax5.legend()
-    plt.show()
+    plt.savefig('curve.png')
 
 
 if __name__ == '__main__':

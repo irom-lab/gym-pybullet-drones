@@ -84,6 +84,7 @@ class HoverResidualAviary(BaseResidualAviary):
                          rate_residual_scale=rate_residual_scale,
                          thrust_residual_scale=thrust_residual_scale)
         self.TARGET_POS = target_pos
+        self.max_dist = 1
 
     ################################################################################
     def _computeReward(self):
@@ -97,13 +98,11 @@ class HoverResidualAviary(BaseResidualAviary):
         """
         # pos-3; quat-4; rpy-3; vel-3; ang-vel-4; last_clipped_action-4
         state = self._getDroneStateVector(0)
-        return -1 * np.linalg.norm(np.array(self.TARGET_POS) - state[0:3])**2
-        # return -1*(1-state[2])**2 - 5*np.linalg.norm(np.array([0, 0])-state[0:2])**2
-        # reward = -1*(1-state[2])**2 - 5*np.linalg.norm(np.array([0, 0])-state[0:2])**2 - abs(state[7]) - abs(state[8])
-        # reward = -(1-state[2])**2 - 0.1*np.linalg.norm(np.array([0, 0])-state[0:2])**2
-        # if np.linalg.norm(state[0:2]) > 0.50:
-        # reward -= 100
-        # return reward
+        dist = np.linalg.norm(np.array(self.TARGET_POS) - state[0:3])
+        dist_ratio = dist / self.max_dist
+        reward = max(0, 1-dist_ratio)*0.1
+        return reward
+
 
     ################################################################################
 
@@ -116,7 +115,11 @@ class HoverResidualAviary(BaseResidualAviary):
             Whether the current episode is done.
 
         """
+        state = self._getDroneStateVector(0)
         if self.step_counter / self.SIM_FREQ > self.EPISODE_LEN_SEC:
+            self.ctrl.reset()
+            return True
+        elif state[0] > 1.0 or state[1] > 1.0:
             self.ctrl.reset()
             return True
         else:
@@ -159,8 +162,10 @@ class HoverResidualAviary(BaseResidualAviary):
         MAX_LIN_VEL_Z = 1
 
         #? These values are large
-        MAX_XY = MAX_LIN_VEL_XY * self.EPISODE_LEN_SEC  # 3*5=15
-        MAX_Z = MAX_LIN_VEL_Z * self.EPISODE_LEN_SEC  # 1*5=5
+        # MAX_XY = MAX_LIN_VEL_XY * self.EPISODE_LEN_SEC  # 3*5=15
+        # MAX_Z = MAX_LIN_VEL_Z * self.EPISODE_LEN_SEC  # 1*5=5
+        MAX_XY = 1
+        MAX_Z = 2
 
         MAX_PITCH_ROLL = np.pi  # Full range
 
@@ -296,6 +301,6 @@ class WindHoverResidualAviary(HoverResidualAviary, Wind):
         # Add wind - normalized
         wind_obs = get_frames(self.wind_frames, self.wind_num_frame, self.wind_frame_skip)
         wind_obs = np.clip(wind_obs/self.max_wind, -1, 1)
-        print(wind_obs)
+        # print(wind_obs)
 
         return np.concatenate((obs, wind_obs))

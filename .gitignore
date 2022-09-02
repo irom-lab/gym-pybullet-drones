@@ -1,8 +1,8 @@
 # TODOs 
-TODOs.md
 examples/debug.py
 examples/test.py
 logs/
+wandb/
 
 # NumPy saves and videos
 files/logs/*.npy

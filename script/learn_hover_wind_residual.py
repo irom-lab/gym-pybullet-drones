@@ -18,12 +18,13 @@ from gym_pybullet_drones.envs.residual_rl.HoverResidualAviary import WindHoverRe
 from gym_pybullet_drones.utils.utils import sync
 from gym_pybullet_drones.envs.BaseAviary import DroneModel, Physics
 from gym_pybullet_drones.envs.residual_rl.BaseResidualAviary import ActionType
+from script.custom_callback import CustomCallback
 
 import wandb
 import logging
 import argparse
 from omegaconf import OmegaConf
-from wandb.integration.sb3 import WandbCallback
+# from wandb.integration.sb3 import WandbCallback
 
 
 if __name__ == "__main__":
@@ -48,7 +49,9 @@ if __name__ == "__main__":
     if cfg.use_wandb:
         wandb.init(entity='allenzren',
                    project=cfg.project,
-                   name=cfg.run)
+                   name=cfg.run,
+                #    sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
+                )
         wandb.config.update(cfg) 
 
     # Envs
@@ -90,7 +93,9 @@ if __name__ == "__main__":
         max_wind=cfg.max_wind,
         wind_obs_freq=cfg.wind_obs_freq,
         #
-        fixed_init_pos=[cfg.fixed_init_val],  # add dimension
+        init_xy_range=cfg.init_xy_range,    # test with randomized init too
+        init_z_range=cfg.init_z_range,
+        # fixed_init_pos=[cfg.fixed_init_val],  # add dimension
         rate_residual_scale=cfg.rate_residual_scale,
         thrust_residual_scale=cfg.thrust_residual_scale)
 
@@ -106,20 +111,19 @@ if __name__ == "__main__":
     eval_env = make_vec_env(
         WindHoverResidualAviary,
         env_kwargs=eval_env_kwargs,
-        n_envs=1,  # n_eval_episodes=10 default
+        n_envs=1,
         seed=cfg.seed)
-    # callback_on_best = StopTrainingOnRewardThreshold(reward_threshold=0,
-    #                                                  verbose=1)
     eval_callback = EvalCallback(
         eval_env,
-        # callback_on_new_best=callback_on_best,
+        # callback_on_new_best=StopTrainingOnRewardThreshold(reward_threshold=0,
+        #                                                  verbose=1),
         verbose=1,
         best_model_save_path=cfg.log_dir,
         n_eval_episodes=cfg.n_eval_episodes,
         log_path=cfg.log_dir,
         eval_freq=cfg.eval_freq,
-        deterministic=True,
-        render=False)  # Use deterministic actions for evaluation
+        deterministic=False,  # Use deterministic actions for evaluation
+        render=False)
     policy_kwargs = dict(activation_fn=torch.nn.ReLU,
                          net_arch=list(cfg.net_arch),
                          )
@@ -133,10 +137,11 @@ if __name__ == "__main__":
             batch_size=cfg.batch_size,
             buffer_size=cfg.buffer_size,
             learning_rate=cfg.learning_rate,
-            train_freq=(1, "step"),
+            train_freq=(cfg.train_freq, "step"),
             policy_kwargs=policy_kwargs,
             ent_coef=cfg.ent_coef,
             verbose=1,
+            tensorboard_log=os.path.join(cfg.log_dir, 'tb_log'),
         )
     elif cfg.model_type == 'td3':
         model = TD3(
@@ -147,9 +152,10 @@ if __name__ == "__main__":
             batch_size=cfg.batch_size,
             buffer_size=cfg.buffer_size,
             learning_rate=cfg.learning_rate,
-            train_freq=(1, "step"),
+            train_freq=(cfg.train_freq, "step"),
             policy_kwargs=policy_kwargs,
             verbose=1,
+            tensorboard_log=os.path.join(cfg.log_dir, 'tb_log'),
         )
     elif cfg.model_type == 'ppo':
         onpolicy_kwargs = dict(activation_fn=torch.nn.ReLU,
@@ -163,13 +169,21 @@ if __name__ == "__main__":
             n_steps=cfg.n_steps,
             clip_range=cfg.clip_range,
             policy_kwargs=onpolicy_kwargs,
+            tensorboard_log=os.path.join(cfg.log_dir, 'tb_log'),
         )
     train_logger = configure(cfg.log_dir, ["stdout", "log", "csv"])
     model.set_logger(train_logger)
     callback_list = [eval_callback]
     if cfg.use_wandb:
-        callback_list += [WandbCallback]
-    model.learn(total_timesteps=cfg.total_timesteps, callback=eval_callback)
+        # callback_list += [WandbCallback(
+        #                     gradient_save_freq=2000,
+        #                     model_save_path=f"test",
+        #                     model_save_freq=2000,
+        #                     verbose=2,
+        #                     )
+        #                  ]
+        callback_list += [CustomCallback()]                   
+    model.learn(total_timesteps=cfg.total_timesteps, callback=callback_list)
     model.save(os.path.join(cfg.log_dir, 'final_model.zip'))
 
     #### Log training progression ############################
