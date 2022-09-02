@@ -1,8 +1,11 @@
 import numpy as np
+from collections import deque
+from gym import spaces
 
 from gym_pybullet_drones.assets.wind import Wind
 from gym_pybullet_drones.envs.BaseAviary import DroneModel, Physics
 from gym_pybullet_drones.envs.residual_rl.BaseResidualAviary import ActionType, ObservationType, BaseResidualAviary
+from gym_pybullet_drones.utils.utils import get_frames
 
 
 class HoverResidualAviary(BaseResidualAviary):
@@ -12,6 +15,7 @@ class HoverResidualAviary(BaseResidualAviary):
 
     def __init__(
         self,
+        seed=42,
         drone_model: DroneModel = DroneModel.X500,
         initial_xyzs=None,
         initial_rpys=None,
@@ -28,7 +32,6 @@ class HoverResidualAviary(BaseResidualAviary):
         video_path=None,
         obs: ObservationType = ObservationType.KIN,
         act: ActionType = ActionType.RES,
-        use_normalize=False,
         # residual
         rate_residual_scale=0.1,
         thrust_residual_scale=1.0,
@@ -62,7 +65,8 @@ class HoverResidualAviary(BaseResidualAviary):
             The type of action space (1 or 3D; RPMS, thurst and torques, or waypoint with PID control)
 
         """
-        super().__init__(drone_model=drone_model,
+        super().__init__(seed=seed,
+                         drone_model=drone_model,
                          initial_xyzs=initial_xyzs,
                          initial_rpys=initial_rpys,
                          fixed_init_pos=fixed_init_pos,
@@ -77,7 +81,6 @@ class HoverResidualAviary(BaseResidualAviary):
                          video_path=video_path,
                          obs=obs,
                          act=act,
-                         use_normalize=use_normalize,
                          rate_residual_scale=rate_residual_scale,
                          thrust_residual_scale=thrust_residual_scale)
         self.TARGET_POS = target_pos
@@ -155,6 +158,7 @@ class HoverResidualAviary(BaseResidualAviary):
         MAX_LIN_VEL_XY = 3
         MAX_LIN_VEL_Z = 1
 
+        #? These values are large
         MAX_XY = MAX_LIN_VEL_XY * self.EPISODE_LEN_SEC  # 3*5=15
         MAX_Z = MAX_LIN_VEL_Z * self.EPISODE_LEN_SEC  # 1*5=5
 
@@ -176,7 +180,7 @@ class HoverResidualAviary(BaseResidualAviary):
         normalized_rp = clipped_rp / MAX_PITCH_ROLL
         normalized_y = state[9] / np.pi  # No reason to clip
         normalized_vel_xy = clipped_vel_xy / MAX_LIN_VEL_XY
-        normalized_vel_z = clipped_vel_z / MAX_LIN_VEL_XY
+        normalized_vel_z = clipped_vel_z / MAX_LIN_VEL_Z
         normalized_ang_vel = state[13:16] / np.linalg.norm(
             state[13:16]) if np.linalg.norm(
                 state[13:16]) != 0 else state[13:16]
@@ -233,6 +237,65 @@ class HoverResidualAviary(BaseResidualAviary):
 
 
 class WindHoverResidualAviary(HoverResidualAviary, Wind):
-    def __init__(self, **kwargs):
+    def __init__(self, wind_num_frame=1, 
+                       wind_frame_skip=0, 
+                       max_wind=10,
+                       wind_obs_freq=120,
+                       **kwargs):
+        # For normalization as state input
+        self.max_wind = max_wind
+
+        # Wind history config
+        self.wind_num_frame = wind_num_frame
+        self.wind_frame_skip = wind_frame_skip        
+        self.wind_frame_cover = (
+            self.wind_num_frame - 1
+        ) * self.wind_frame_skip + self.wind_num_frame  # maxlen in deque; if fewer, randomly sample
+
+        # Parents
         HoverResidualAviary.__init__(self, **kwargs)
         Wind.__init__(self, **kwargs)
+        
+        # Wind observation frequency
+        assert self.SIM_FREQ%wind_obs_freq == 0   # matching pybullet
+        self.wind_obs_freq = wind_obs_freq
+        self.wind_obs_aggregate_phy_steps = int(self.SIM_FREQ/wind_obs_freq)  
+
+
+    def reset(self):
+
+        # Reset wind history
+        self.wind_frames = deque(maxlen=self.wind_frame_cover)
+        self.wind_frames.appendleft(self.rng.random(3)*0.1) # small random value initially
+
+        # Get new obs
+        return super().reset()
+
+    
+    def _observationSpace(self):
+        obs_lower_bound = np.array([
+            -1, -1, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
+        ])  # 16
+        obs_upper_bound = np.array([
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        ])
+        # Add wind frames - use 3-dim wind vector - normalized
+        obs_lower_bound = np.hstack((obs_lower_bound, -np.ones(3*self.wind_num_frame)))
+        obs_upper_bound = np.hstack((obs_upper_bound, np.ones(3*self.wind_num_frame)))
+        return spaces.Box(low=obs_lower_bound,
+                          high=obs_upper_bound,
+                          dtype=np.float32)
+
+    
+    def _computeObs(self):
+        # TODO: last state and action?
+        
+        # Get state - already normalized
+        obs = super()._computeObs()
+
+        # Add wind - normalized
+        wind_obs = get_frames(self.wind_frames, self.wind_num_frame, self.wind_frame_skip)
+        wind_obs = np.clip(wind_obs/self.max_wind, -1, 1)
+        print(wind_obs)
+
+        return np.concatenate((obs, wind_obs))

@@ -13,7 +13,7 @@ class Wind():
         self,
         wind_model='basic',
         wind_force=[0, 0, 0], #used in _drag function (to be depreciated)
-        wind_vector=np.array([1.1, 0, 0]).reshape((3,1)), #used in _wind_aero_... functions
+        wind_vector=np.array([1, 0, 0]), #used in _wind_aero_... functions,
         **kwargs,
     ):
         self.wind_model = wind_model
@@ -21,24 +21,24 @@ class Wind():
         self.wind_vector = wind_vector
         
         # Constants for WIND_AERO_DRAG
-        self.rho = 1.225 #Density of air [kg/m^3]
-        # Constants for BLADE_FLAPPING NCHECK: should these be self.?
-        self.lambda0 = 0.075 #Average inflow ratio
-        self.th0 = np.radians(16) #Root angle of attack [rad]
-        self.thtw = np.radians(-6.6) #Blade twist [rad]
-        self.k_beta = 3 #Hinge spring constant [N.m/rad]
-        self.nu_beta = 1.9 #Blade scaled natural frequency (listed as 1.9 on p.4 of 2016, 1.5 in 2020
-        self.gamma = 1.04 #Lock number
-        # Vehicle Constants [NCHECK: Should eventually encode this in urdf]
-        self.Af = 0.02 #Quadrotor frontal area [m^2]
-        self.Cd = 0.8 #Quadrotor drag coefficient
-        self.Nr = 4 #Number of rotors
-        self.Nb = 2 #Number of blades
-        self.c = 0.015 #Chord length m
-        self.Cla = 2*np.pi #Airfoil lift slope
-        self.alpha_ind = np.arctan(self.lambda0/0.75) #approximation, induced angle of attack [rad]
-        self.alpha_eff = self.th0 + (3/4)*self.thtw - self.alpha_ind #effective angle of attack [rad]
-        self.rbar = 0.0635 #rotor blade length [m] ##NOT SURE IF ROTOR BLADE LENGTH = ROTOR RADIUS !!
+        self.rho = 1.225    # Density of air [kg/m^3]
+        # Constants for BLADE_FLAPPING
+        self.lambda_0 = 0.075    # Average inflow ratio
+        self.theta_0 = np.radians(16)   # Root angle of attack [rad]
+        self.thtw = np.radians(-6.6)    # Blade twist [rad]
+        self.k_beta = 3 # Hinge spring constant [N.m/rad]
+        self.nu_beta = 1.9  # Blade scaled natural frequency (listed as 1.9 on p.4 of 2016, 1.5 in 2020
+        self.gamma = 1.04   # Lock number
+        # Vehicle Constants
+        self.Af = 0.02  # Quadrotor frontal area [m^2]
+        self.Cd = 0.8   # Quadrotor drag coefficient
+        self.Nr = 4 # Number of rotors
+        self.Nb = 2 # Number of blades
+        self.c = 0.015 # Chord length m
+        self.Cla = 2*np.pi # Airfoil lift slope
+        self.alpha_ind = np.arctan(self.lambda_0/0.75) # approximation, induced angle of attack [rad]
+        self.alpha_eff = self.theta_0 + (3/4)*self.thtw - self.alpha_ind #effective angle of attack [rad]
+        self.rbar = 0.0635 # rotor blade length [m] ##NOT SURE IF ROTOR BLADE LENGTH = ROTOR RADIUS !!
 
 
     def apply_wind(self, **kwargs):
@@ -69,7 +69,7 @@ class Wind():
         """
         U3 = np.array([0, 0, 1]).reshape((3,1)) # U3 = e3 in body coordinates
         U1 = np.zeros([3,1])
-        U1[0:2] = V_infty[0:2] #Extract horizontal components of V_infty (ignore V_infty[2])
+        U1[0:2] = V_infty[0:2] # Extract horizontal components of V_infty (ignore V_infty[2])
         if np.linalg.norm(U1) != 0:
             U1 = U1 / np.linalg.norm(U1) #Normalize U1
         U2 = -np.cross(U1,U3, axis = 0) #Determine U2 from cross product
@@ -105,15 +105,13 @@ class Wind():
             drag_factors *
             np.array(self.vel[nth_drone, :] + wind_force)
         )  # vel and wind in global frame, drag in local frame
-        # logging.info('wind force = ' + str(wind_force))
-        # logging.info('drag = '+ str(drag))
         p.applyExternalForce(self.DRONE_IDS[nth_drone],
                                 4,
                                 forceObj=drag,
                                 posObj=[0, 0, 0],
                                 flags=p.LINK_FRAME,
                                 physicsClientId=self.CLIENT)
-
+    
 
     ################################################################################
 
@@ -133,18 +131,19 @@ class Wind():
         wind_vector_inertial : ndarray
             (3,1)-shaped array of floats describing the wind vector in the inertial frame
         """
-        if not wind_vector_inertial: wind_vector_inertial = self.wind_vector
+        if not wind_vector_inertial: 
+            wind_vector_inertial = self.wind_vector.reshape((3,1))
         
         # Operational Variables
         #omega_j = 8000 #Propeller nominal angular velocity [RPM]
-        omega_j = np.mean(rpm) #Average propeller angular velocity [RPM]
+        omega_j = np.mean(rpm) #    Average propeller angular velocity [RPM]
         # NCHECK: Eventually, convert to use individual motor rpms
 
         #### Rotation matrix of the base ###########################
         base_rot = np.array(p.getMatrixFromQuaternion(self.quat[nth_drone, :])).reshape(3, 3)
         #print("base_rot:")
         #print(base_rot)
-        wind_vector = np.matmul(np.linalg.inv(base_rot), wind_vector_inertial) #Body Frame
+        wind_vector = np.matmul(np.linalg.inv(base_rot), wind_vector_inertial) # Body Frame
         #print("wind_vector: [INERTIAL_FRAME]")
         #print(wind_vector_inertial)
         #print("wind_vector: [BODY_FRAME]")
@@ -152,30 +151,32 @@ class Wind():
 
         #### Bluff Body Drag
         f_bluff = 0.5*self.rho*np.linalg.norm(wind_vector)*self.Af*self.Cd*wind_vector
-        #print("f_bluff: [BODY_FRAME]")
-        #print(f_bluff)
+        # print("f_bluff: [BODY_FRAME]")
+        # print(f_bluff)
+
         #### Induced Drag
         # rotate wind_vector into BODY_FRAME
         # project wind_vector onto b1xb2 plane
         # (in Paley, V_infty \cdot U1 = wind vector projection)
 
-        #Extract wind frame axis
+        # Extract wind frame axis
         U1 = self._wind_frame(wind_vector)[:,0].reshape((3,1))
         f_ind = 0.0
-        #Calculate induced drag for each propeller
+
+        # Calculate induced drag for each propeller
         for i in range(4):
             omega_j = rpm[i]
             #print('RPM')
             #print(omega_j)
             #don't multiply by self.Nr (number of rotors)
             f_ind += self.Nb/4*self.rho*self.c*self.Cla*self.alpha_eff*np.sin(self.alpha_ind)*omega_j*self.rbar**2*(np.dot(wind_vector.reshape((3,)),U1.reshape((3,))))*U1
-        #print("f_ind: [BODY_FRAME]")
-        #print(f_ind)
+        # print("f_ind: [BODY_FRAME]")
+        # print(f_ind)
 
         #### Total Aerodynamic Drag
         f_aero = f_bluff + f_ind
-        #print("f_aero: [BODY_FRAME]")
-        #print(f_aero)
+        # print("f_aero: [BODY_FRAME]")
+        # print(f_aero)
         p.applyExternalForce(self.DRONE_IDS[nth_drone],
                              4,
                              forceObj=f_aero,
@@ -183,7 +184,6 @@ class Wind():
                              flags=p.LINK_FRAME,
                              physicsClientId=self.CLIENT
                              )
-        # [NCHECK: Are external forces all applied in the inertial frame? vs. body frame?]
 
 
     def _wind_bf_drag(self,
@@ -202,7 +202,8 @@ class Wind():
         wind_vector_inertial : ndarray
             (3,1)-shaped array of floats describing the wind vector in the [inertial frame]
         """
-        if not wind_vector_inertial: wind_vector_inertial = self.wind_vector
+        if not wind_vector_inertial: 
+            wind_vector_inertial = self.wind_vector.reshape((3,1))
 
         # Operational Variables
         omega_j = 8000 #Propeller nominal angular velocity [RPM]
@@ -215,11 +216,11 @@ class Wind():
         U2 = self._wind_frame(wind_vector)[:,1].reshape((3,1))
         #### Calculate Blade Flapping Variables
         mu = np.linalg.norm(wind_vector)/v_tip #Advance ratio
-        chi = np.arctan(mu/self.lambda0) #
+        chi = np.arctan(mu/self.lambda_0) #
         k_lambda_x = 15*np.pi/23*np.tan(chi/2) #Glauert longitudinal inflow gradient (also k_x)
 
-        beta_1c = -self.gamma/(8*(self.nu_beta**2-1))*self.lambda0*k_lambda_x
-        beta_1s = mu*self.gamma/(4*(self.nu_beta**2-1))*(4/3*self.th0+self.thtw-self.lambda0)
+        beta_1c = -self.gamma/(8*(self.nu_beta**2-1))*self.lambda_0*k_lambda_x
+        beta_1s = mu*self.gamma/(4*(self.nu_beta**2-1))*(4/3*self.theta_0+self.thtw-self.lambda_0)
             
         beta_max = np.sqrt(beta_1c**2 + beta_1s**2)
         # NCHECK: Is there a better way than to apply this conditional?
@@ -257,7 +258,7 @@ class Wind():
 
         return@ float representing a 'gust scalar', to be added to a nominal wind [m/s]
         """
-        if gust_type == 0: #Semi-Square Pulse
+        if gust_type == 0: # Semi-Square Pulse
             tg1 = 0.1 #rising time
             tg2 = 0.1 #falling time
             th = 1  #holding time
@@ -265,7 +266,7 @@ class Wind():
             g3 = 6 #change 'curvature'
             g4 = .1 #change magnitude of dip before gust
             g5 = .1 #change magnitude of dip after gust
-        elif gust_type == 1: #Custom
+        elif gust_type == 1: # Custom
             tg1 = 1 #rising time
             tg2 = 1 #falling time
             th = 1  #holding time

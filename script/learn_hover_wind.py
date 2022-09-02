@@ -1,6 +1,5 @@
-"""
-
-"""
+import os
+import shutil
 import time
 import torch
 import numpy as np
@@ -16,7 +15,7 @@ from stable_baselines3.common.env_util import make_vec_env
 
 from gym_pybullet_drones.utils.Logger import Logger
 from gym_pybullet_drones.envs.WindHoverAviary import WindHoverAviary
-from gym_pybullet_drones.utils.utils import sync, ensure_directory_hard
+from gym_pybullet_drones.utils.utils import sync
 from gym_pybullet_drones.envs.BaseAviary import DroneModel, Physics
 from gym_pybullet_drones.envs.single_agent_rl.BaseSingleAgentAviary import ActionType
 
@@ -25,7 +24,9 @@ if __name__ == "__main__":
     #### Save directory ########################################
     log_dir = '/home/nate/Documents/gym_logs/test_hover_wind_dyn_ppo_v6/'
     model_type = log_dir.split('_')[-2]
-    ensure_directory_hard(log_dir)
+    if os.path.exists(log_dir):
+        shutil.rmtree(log_dir)
+    os.mkdir(log_dir)
 
     # TODO: use yaml; dump info
     # Envs

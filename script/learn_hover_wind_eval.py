@@ -20,9 +20,10 @@ from stable_baselines3.common.env_util import make_vec_env
 
 from gym_pybullet_drones.utils.Logger import Logger
 from gym_pybullet_drones.envs.single_agent_rl.HoverAviary import HoverAviary
-from gym_pybullet_drones.utils.utils import sync, str2bool, ensure_directory_hard
+from gym_pybullet_drones.utils.utils import sync
 from gym_pybullet_drones.envs.BaseAviary import DroneModel, Physics
 from gym_pybullet_drones.envs.single_agent_rl.BaseSingleAgentAviary import ActionType, ObservationType
+
 
 if __name__ == "__main__":
     log_dir = 'logs/test_hover_wind_dyn_ppo_v6/'

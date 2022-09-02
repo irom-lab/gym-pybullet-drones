@@ -31,6 +31,7 @@ class BaseResidualAviary(BaseAviary):
 
     def __init__(
         self,
+        seed=42,
         drone_model: DroneModel = DroneModel.X500,
         initial_xyzs=None,
         initial_rpys=None,
@@ -46,7 +47,6 @@ class BaseResidualAviary(BaseAviary):
         video_path=None,
         obs: ObservationType = ObservationType.KIN,
         act: ActionType = ActionType.RES,
-        use_normalize=False,
         # residual
         rate_residual_scale=0.1,
         thrust_residual_scale=1.0,
@@ -84,7 +84,6 @@ class BaseResidualAviary(BaseAviary):
         """
         self.OBS_TYPE = obs
         self.ACT_TYPE = act
-        self.USE_NORMALIZE = use_normalize
         self.EPISODE_LEN_SEC = episode_len_sec
         Ts = aggregate_phy_steps / freq
         self.rate_residual_scale = rate_residual_scale
@@ -93,6 +92,7 @@ class BaseResidualAviary(BaseAviary):
         #### Create integrated controllers #########################
         self.ctrl = PX4Control(drone_model=drone_model, Ts=Ts)
         super().__init__(
+            seed=seed,
             drone_model=drone_model,
             num_drones=1,
             initial_xyzs=initial_xyzs,
@@ -136,20 +136,22 @@ class BaseResidualAviary(BaseAviary):
 
     def _preprocessAction(self, action):
         """
-        Use residual
+        Use residual. Use current yaw as yaw setpoint.
         """
-        # print(action)
         rate_residual = action[:3] * self.rate_residual_scale
         thrust_residual = action[3] * self.thrust_residual_scale
 
         state = self._getDroneStateVector(0)
+        current_yaw = state[9]  # TODO: check
         action, _, _ = self.ctrl.computeControlFromState(
             state=state,
             target_pos=self.TARGET_POS,
             rate_residual=rate_residual,
-            thrust_residual=thrust_residual
-            # target_rpy=INIT_RPYS[0, :]
+            thrust_residual=thrust_residual,
+            target_rpy=np.array([0, 0, current_yaw]),
         )
+        
+        # TODO: use minRPM?
         clipped_action = np.clip(np.array(action), 0, self.MAX_RPM)
         return clipped_action
 
@@ -166,27 +168,12 @@ class BaseResidualAviary(BaseAviary):
         """
         if self.OBS_TYPE == ObservationType.KIN:
             # OBS OF SIZE 20 (WITH QUATERNION AND RPMS)
-            #### Observation vector ### XYZ QQ2   Q3   Q4   R       P       Y       VX       VY       VZ       WX       WY       WZ       (no RPMs)
+            #### Observation vector ### X Y Z | Q1 Q2 Q3 Q4 | R P Y | VX VY VZ | WX WY WZ |  (no RPMs)
             obs_lower_bound = np.array([
                 -1, -1, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
             ])
             obs_upper_bound = np.array([
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
+                1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
             ])
             return spaces.Box(low=obs_lower_bound,
                               high=obs_upper_bound,

@@ -50,12 +50,13 @@ class PX4Control(BaseControl):
 
         # Set up params
         if self.DRONE_MODEL == DroneModel.X500:
-            self.mB = 1.2105
+            self.mB = 1.8   # updated
             dxm = dym = 0.25
-            MAX_RPM = 8000
+            MAX_RPM = 9600  # updated
             self.pos_P_gain = np.array([0.95, 0.95, 1.0])
             self.vel_P_gain = np.array([1.8, 1.8, 4.0])
-            self.vel_D_gain = np.array([0.2, 0.2, 0.0])
+            # self.vel_D_gain = np.array([0.2, 0.2, 0.0])
+            self.vel_D_gain = np.array([0.01, 0.01, 0.0])
             self.vel_I_gain = np.array([0.4, 0.4, 2])
             self.rate_P_gain = np.array([0.15, 0.15, 0.2])
             self.rate_D_gain = np.array([0.003, 0.003, 0.0])
@@ -73,7 +74,7 @@ class PX4Control(BaseControl):
 
         # Attitude P gains
         Pphi = 6.5  # 1.0
-        Ptheta = Pphi
+        Ptheta = 6.5
         Ppsi = 2.8  # 0.2
         self.att_P_gain = np.array([Pphi, Ptheta, Ppsi])
 
@@ -142,6 +143,7 @@ class PX4Control(BaseControl):
     def computeControlFromState(self,
                                 state,
                                 target_pos,
+                                target_rpy=np.zeros((3)),
                                 rate_residual=np.zeros((3)),
                                 thrust_residual=0):
         """Computes the PID control action (as RPMs) for a single drone.
@@ -176,12 +178,8 @@ class PX4Control(BaseControl):
 
         self.dcm = quat2Dcm(self.quat)
         self.omega = np.dot(self.dcm.transpose(), self.ang_vel)  # body rate
-        # print(self.omega)
-        #
         self.vel_dot = (self.vel - self.prev_vel) / self.Ts
         self.omega_dot = (self.omega - self.prev_omega) / self.Ts
-        # print('vel dot: ', self.vel_dot)
-        # print('omega dot: ', self.omega_dot)
 
         # Desired State (Create a copy, hence the [:])
         # ---------------------------
@@ -189,7 +187,7 @@ class PX4Control(BaseControl):
         self.vel_sp = np.zeros((3))
         self.acc_sp = np.zeros((3))
         self.thrust_sp = np.zeros((3))
-        self.eul_sp = np.zeros((3))
+        self.eul_sp = target_rpy    # we set yaw sp to be current yaw
         self.pqr_sp = 0
         self.yawFF = 0
 
@@ -220,20 +218,13 @@ class PX4Control(BaseControl):
             w_cmd = sol
         w_cmd = np.clip(w_cmd, self.minWmotor**2, self.maxWmotor**2)
         w_cmd = np.sqrt(w_cmd)
-
         # print('')
         # print('Pos: ', self.pos)
         # print('Rate sp:', self.rate_sp)
         # print('Thrust sp:', self.thrust_sp)
         # print('Input: ', t)
         # # print('Nominal: ', np.sqrt(np.dot(self.mixerFMinv, t)))
-        # print('Output: ', w_cmd)
-        # while 1:
-        #     continue
-        # print('')
-        # import time
-        # time.sleep(0.2)
-        # return w_cmd * radps2rpm, None, None
+        print('RPM: ', w_cmd)
         return w_cmd, None, None
 
     ################################################################################
@@ -244,6 +235,7 @@ class PX4Control(BaseControl):
         # ---------------------------
         pos_error = self.pos_sp[0:3] - self.pos
         self.vel_sp[0:3] += self.pos_P_gain[0:3] * pos_error
+
 
     def saturateVel(self):
 
@@ -298,6 +290,7 @@ class PX4Control(BaseControl):
         # Saturate thrust setpoint in D-direction
         self.thrust_sp[2] = np.clip(thrust_z_sp, uMin, uMax)
 
+
     def xy_vel_control(self):
 
         # XY Velocity Control (Thrust in NE-direction)
@@ -327,6 +320,7 @@ class PX4Control(BaseControl):
         self.thr_int[0:2] += self.vel_I_gain[
             0:2] * vel_err_lim * self.Ts * self.useIntergral
 
+
     def thrustToAttitude(self):
 
         # Create Full Desired Quaternion Based on Thrust Setpoint and Desired Yaw Angle
@@ -353,6 +347,7 @@ class PX4Control(BaseControl):
 
         # Full desired quaternion (full because it considers the desired Yaw angle)
         self.qd_full = RotToQuat(R_sp)
+
 
     def attitude_control(self):
 
@@ -400,12 +395,14 @@ class PX4Control(BaseControl):
         # Limit rate setpoint
         self.rate_sp = np.clip(self.rate_sp, -self.rateMax, self.rateMax)
 
+
     def rate_control(self):
 
         # Rate Control
         # ---------------------------
         rate_error = self.rate_sp - self.omega
         self.rateCtrl = self.rate_P_gain * rate_error - self.rate_D_gain * self.omega_dot  # Be sure it is right sign for the D part
+
 
     def setYawWeight(self):
 

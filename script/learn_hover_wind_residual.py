@@ -55,28 +55,41 @@ if __name__ == "__main__":
     act = ActionType.RES
     physics = Physics.PYB
     train_env_kwargs = dict(
+        seed=cfg.seed,
         drone_model=DroneModel.X500,
         act=act,
         aggregate_phy_steps=cfg.aggregate_phy_steps,
         episode_len_sec=cfg.episode_len_sec,
         physics=physics,
+        #
         wind_model=cfg.wind_model,
-        wind_force=cfg.wind_force,
-        use_normalize=cfg.use_normalize,
-        # fixed_init_pos=cfg.fixed_init_train,
+        # wind_force=cfg.wind_force,
+        wind_vector=np.array(cfg.wind_vector),
+        wind_num_frame=cfg.wind_num_frame, 
+        wind_frame_skip=cfg.wind_frame_skip, 
+        max_wind=cfg.max_wind,
+        wind_obs_freq=cfg.wind_obs_freq,
+        #
         init_xy_range=cfg.init_xy_range,    # train with randomized init
         init_z_range=cfg.init_z_range,
         rate_residual_scale=cfg.rate_residual_scale,
         thrust_residual_scale=cfg.thrust_residual_scale)
     eval_env_kwargs = dict(
+        seed=cfg.seed,
         drone_model=DroneModel.X500,
         act=act,
         aggregate_phy_steps=cfg.aggregate_phy_steps,
         episode_len_sec=cfg.episode_len_sec,
         physics=physics,
+        #
         wind_model=cfg.wind_model,
-        wind_force=cfg.wind_force,
-        use_normalize=cfg.use_normalize,
+        # wind_force=cfg.wind_force,
+        wind_vector=np.array(cfg.wind_vector),
+        wind_num_frame=cfg.wind_num_frame, 
+        wind_frame_skip=cfg.wind_frame_skip, 
+        max_wind=cfg.max_wind,
+        wind_obs_freq=cfg.wind_obs_freq,
+        #
         fixed_init_pos=[cfg.fixed_init_val],  # add dimension
         rate_residual_scale=cfg.rate_residual_scale,
         thrust_residual_scale=cfg.thrust_residual_scale)
@@ -94,14 +107,15 @@ if __name__ == "__main__":
         WindHoverResidualAviary,
         env_kwargs=eval_env_kwargs,
         n_envs=1,  # n_eval_episodes=10 default
-        seed=100)
-    callback_on_best = StopTrainingOnRewardThreshold(reward_threshold=0,
-                                                     verbose=1)
+        seed=cfg.seed)
+    # callback_on_best = StopTrainingOnRewardThreshold(reward_threshold=0,
+    #                                                  verbose=1)
     eval_callback = EvalCallback(
         eval_env,
-        callback_on_new_best=callback_on_best,
+        # callback_on_new_best=callback_on_best,
         verbose=1,
         best_model_save_path=cfg.log_dir,
+        n_eval_episodes=cfg.n_eval_episodes,
         log_path=cfg.log_dir,
         eval_freq=cfg.eval_freq,
         deterministic=True,
@@ -169,6 +183,7 @@ if __name__ == "__main__":
     elif cfg.model_type == 'ppo':
         model = PPO.load(best_model_path)
     env = WindHoverResidualAviary(
+        seed=cfg.seed,
         gui=True,
         record=True,
         video_path=os.path.join(cfg.log_dir, 'best_video.mp4'),
@@ -176,9 +191,15 @@ if __name__ == "__main__":
         physics=physics,
         aggregate_phy_steps=cfg.aggregate_phy_steps,
         episode_len_sec=cfg.episode_len_sec,
+        #
         wind_model=cfg.wind_model,
-        wind_force=cfg.wind_force,
-        use_normalize=cfg.use_normalize,
+        # wind_force=cfg.wind_force,
+        wind_vector=np.array(cfg.wind_vector),
+        wind_num_frame=cfg.wind_num_frame, 
+        wind_frame_skip=cfg.wind_frame_skip, 
+        max_wind=cfg.max_wind,
+        wind_obs_freq=cfg.wind_obs_freq,
+        #
         fixed_init_pos=[cfg.fixed_init_val],  # add dimension
         rate_residual_scale=cfg.rate_residual_scale,
         thrust_residual_scale=cfg.thrust_residual_scale

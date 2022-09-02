@@ -31,14 +31,21 @@ if __name__ == "__main__":
     act = ActionType.RES
     physics = Physics.PYB
     env_kwargs = dict(
+        seed=cfg.seed,
         drone_model=DroneModel.X500,
         act=act,
         aggregate_phy_steps=cfg.aggregate_phy_steps,
         episode_len_sec=cfg.episode_len_sec,
         physics=physics,
+        #
         wind_model=cfg.wind_model,
-        wind_force=cfg.wind_force,
-        use_normalize=cfg.use_normalize,
+        # wind_force=cfg.wind_force,
+        wind_vector=np.array(cfg.wind_vector),
+        wind_num_frame=cfg.wind_num_frame, 
+        wind_frame_skip=cfg.wind_frame_skip, 
+        max_wind=cfg.max_wind,
+        wind_obs_freq=cfg.wind_obs_freq,
+        #
         fixed_init_pos=[cfg.fixed_init_val],  # add dimension
         rate_residual_scale=cfg.rate_residual_scale,
         thrust_residual_scale=cfg.thrust_residual_scale
@@ -47,8 +54,8 @@ if __name__ == "__main__":
     #### Check the environment's spaces ########################
     env = make_vec_env(WindHoverResidualAviary,
                        env_kwargs=env_kwargs,
-                       n_envs=cfg.num_env,
-                       seed=0)
+                       n_envs=1,    # always eval with 1 env
+                       seed=cfg.seed)
     best_model_path = os.path.join(cfg.log_dir , 'best_model')
     if cfg.model_type == 'td3':
         model = TD3.load(best_model_path)
@@ -59,6 +66,7 @@ if __name__ == "__main__":
 
     #### Show (and record a video of) the model's performance ##
     env = WindHoverResidualAviary(
+        seed=cfg.seed,
         gui=True,
         record=True,
         video_path=os.path.join(cfg.log_dir, 'best_video.mp4'),
@@ -66,9 +74,15 @@ if __name__ == "__main__":
         physics=physics,
         aggregate_phy_steps=cfg.aggregate_phy_steps,
         episode_len_sec=cfg.episode_len_sec,
+        #
         wind_model=cfg.wind_model,
-        wind_force=cfg.wind_force,
-        use_normalize=cfg.use_normalize,
+        # wind_force=cfg.wind_force,
+        wind_vector=np.array(cfg.wind_vector),
+        wind_num_frame=cfg.wind_num_frame, 
+        wind_frame_skip=cfg.wind_frame_skip, 
+        max_wind=cfg.max_wind,
+        wind_obs_freq=cfg.wind_obs_freq,
+        #
         fixed_init_pos=[cfg.fixed_init_val],  # add dimension
         rate_residual_scale=cfg.rate_residual_scale,
         thrust_residual_scale=cfg.thrust_residual_scale
