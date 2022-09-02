@@ -128,6 +128,7 @@ if __name__ == "__main__":
         model = SAC(
             sacMlpPolicy,
             env,
+            device=cfg.device,
             gradient_steps=cfg.gradient_steps,
             batch_size=cfg.batch_size,
             buffer_size=cfg.buffer_size,
@@ -141,6 +142,7 @@ if __name__ == "__main__":
         model = TD3(
             td3ddpgMlpPolicy,
             env,
+            device=cfg.device,
             gradient_steps=cfg.gradient_steps,
             batch_size=cfg.batch_size,
             buffer_size=cfg.buffer_size,
@@ -155,6 +157,7 @@ if __name__ == "__main__":
         model = PPO(
             a2cppoMlpPolicy,
             env,
+            device=cfg.device,
             batch_size=cfg.batch_size,
             learning_rate=cfg.learning_rate,
             n_steps=cfg.n_steps,
