@@ -103,7 +103,7 @@ if __name__ == "__main__":
     env = make_vec_env(WindHoverResidualAviary,
                        env_kwargs=train_env_kwargs,
                        n_envs=cfg.num_env,
-                       seed=10)
+                       seed=cfg.seed)
     logging.info("Action space: {}".format(env.action_space))
     logging.info("Observation space: {}".format(env.observation_space))
 
@@ -122,7 +122,7 @@ if __name__ == "__main__":
         n_eval_episodes=cfg.n_eval_episodes,
         log_path=cfg.log_dir,
         eval_freq=cfg.eval_freq,
-        deterministic=False,  # Use deterministic actions for evaluation
+        deterministic=True,  # Use deterministic actions for evaluation
         render=False)
     policy_kwargs = dict(activation_fn=torch.nn.ReLU,
                          net_arch=list(cfg.net_arch),
@@ -133,6 +133,7 @@ if __name__ == "__main__":
             sacMlpPolicy,
             env,
             device=cfg.device,
+            gamma=cfg.gamma,
             gradient_steps=cfg.gradient_steps,
             batch_size=cfg.batch_size,
             buffer_size=cfg.buffer_size,
@@ -148,6 +149,7 @@ if __name__ == "__main__":
             td3ddpgMlpPolicy,
             env,
             device=cfg.device,
+            gamma=cfg.gamma,
             gradient_steps=cfg.gradient_steps,
             batch_size=cfg.batch_size,
             buffer_size=cfg.buffer_size,
@@ -164,6 +166,7 @@ if __name__ == "__main__":
             a2cppoMlpPolicy,
             env,
             device=cfg.device,
+            gamma=cfg.gamma,
             batch_size=cfg.batch_size,
             learning_rate=cfg.learning_rate,
             n_steps=cfg.n_steps,
