@@ -1,6 +1,6 @@
 import numpy as np
-from gym import spaces
 
+from gym_pybullet_drones.assets.wind import Wind
 from gym_pybullet_drones.envs.BaseAviary import DroneModel, Physics
 from gym_pybullet_drones.envs.residual_rl.BaseResidualAviary import ActionType, ObservationType, BaseResidualAviary
 
@@ -28,13 +28,11 @@ class HoverResidualAviary(BaseResidualAviary):
         video_path=None,
         obs: ObservationType = ObservationType.KIN,
         act: ActionType = ActionType.RES,
-        # wind
-        wind_model='simple',
-        wind_force=[0, 0, 0],
         use_normalize=False,
         # residual
         rate_residual_scale=0.1,
         thrust_residual_scale=1.0,
+        **kwargs,
     ):
         """Initialization of a single agent RL environment.
 
@@ -79,8 +77,6 @@ class HoverResidualAviary(BaseResidualAviary):
                          video_path=video_path,
                          obs=obs,
                          act=act,
-                         wind_model=wind_model,
-                         wind_force=wind_force,
                          use_normalize=use_normalize,
                          rate_residual_scale=rate_residual_scale,
                          thrust_residual_scale=thrust_residual_scale)
@@ -234,3 +230,9 @@ class HoverResidualAviary(BaseResidualAviary):
                 "[WARNING] it", self.step_counter,
                 "in HoverAviary._clipAndNormalizeState(), clipped z velocity [{:.2f}]"
                 .format(state[12]))
+
+
+class WindHoverResidualAviary(HoverResidualAviary, Wind):
+    def __init__(self, **kwargs):
+        HoverResidualAviary.__init__(self, **kwargs)
+        Wind.__init__(self, **kwargs)

@@ -12,6 +12,7 @@ import numpy as np
 import pybullet as p
 import pybullet_data
 import gym
+import logging
 
 
 class DroneModel(Enum):
@@ -151,8 +152,8 @@ class BaseAviary(gym.Env):
         self.DW_COEFF_1, \
         self.DW_COEFF_2, \
         self.DW_COEFF_3 = self._parseURDFParameters()
-        print(
-            "[INFO] BaseAviary.__init__() loaded parameters from the drone's .urdf:\n[INFO] m {:f}, L {:f},\n[INFO] ixx {:f}, iyy {:f}, izz {:f},\n[INFO] kf {:f}, km {:f},\n[INFO] t2w {:f}, max_speed_kmh {:f},\n[INFO] gnd_eff_coeff {:f}, prop_radius {:f},\n[INFO] drag_xy_coeff {:f}, drag_z_coeff {:f},\n[INFO] dw_coeff_1 {:f}, dw_coeff_2 {:f}, dw_coeff_3 {:f}"
+        logging.info(
+            "BaseAviary.__init__() loaded parameters from the drone's .urdf:\nm {:f}, L {:f},\nixx {:f}, iyy {:f}, izz {:f},\nkf {:f}, km {:f},\nt2w {:f}, max_speed_kmh {:f},\ngnd_eff_coeff {:f}, prop_radius {:f},\ndrag_xy_coeff {:f}, drag_z_coeff {:f},\ndw_coeff_1 {:f}, dw_coeff_2 {:f}, dw_coeff_3 {:f}"
             .format(self.M, self.L, self.J[0, 0], self.J[1, 1], self.J[2, 2],
                     self.KF, self.KM, self.THRUST2WEIGHT_RATIO,
                     self.MAX_SPEED_KMH, self.GND_EFF_COEFF, self.PROP_RADIUS,
@@ -331,10 +332,7 @@ class BaseAviary(gym.Env):
 
     ################################################################################
 
-    def step(
-        self,
-        action,
-    ):
+    def step(self, action):
         """Advances the environment by one simulation step.
 
         Parameters
@@ -410,7 +408,6 @@ class BaseAviary(gym.Env):
             self._saveLastAction(action)
             clipped_action = np.reshape(self._preprocessAction(action),
                                         (self.NUM_DRONES, 4))
-            # print(action, clipped_action)
         #### Repeat for as many as the aggregate physics steps #####
         for _ in range(self.AGGR_PHY_STEPS):
             #### Update and store the drones kinematic info for certain
@@ -443,19 +440,21 @@ class BaseAviary(gym.Env):
                 else:
                     raise 'Unknown physics model!'
                 
-                # ! Apply wind model if class attribute exists
+                # Apply wind model if class attribute exists
                 if hasattr(self, 'wind_model'):
-                    wall_clock_time = time.time() - self.RESET_TIME
-                    gust = self.wind_function(wall_clock_time, 3, 0)
-                    self.wind_force[0] = 1000*gust
+                    # wall_clock_time = time.time() - self.RESET_TIME
+                    # gust = self.wind_function(wall_clock_time, 3, 0)
+                    # self.wind_force[0] = 1000*gust
                     self.apply_wind(rpm=self.last_clipped_action[i, :],
                                     nth_drone=i)
 
             #### PyBullet computes the new state, unless Physics.DYN ###
             if self.PHYSICS != Physics.DYN:
                 p.stepSimulation(physicsClientId=self.CLIENT)
+
             #### Save the last applied action (e.g. to compute drag) ###
             self.last_clipped_action = clipped_action
+
         #### Update and store the drones kinematic information #####
         self._updateAndStoreKinematicInformation()
         #### Prepare the return values #############################
@@ -554,7 +553,7 @@ class BaseAviary(gym.Env):
         in the `reset()` function.
 
         """
-        print(self.FIXED_INIT_POS)
+        # logging.info('Using fixed init position: {}'.format(self.FIXED_INIT_POS))
         if self.FIXED_INIT_POS is not None:
             init_pos = self.FIXED_INIT_POS
             init_rpy = [[0, 0, 0]]
@@ -837,9 +836,6 @@ class BaseAviary(gym.Env):
                                  posObj=[0, 0, 0],
                                  flags=p.LINK_FRAME,
                                  physicsClientId=self.CLIENT)
-        # print('rpm:')
-        # #print("{:.2f}".format(z_torque))
-        # print(rpm)
         p.applyExternalTorque(self.DRONE_IDS[nth_drone],
                               4,
                               torqueObj=[0, 0, z_torque],

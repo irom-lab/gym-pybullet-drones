@@ -46,9 +46,6 @@ class BaseResidualAviary(BaseAviary):
         video_path=None,
         obs: ObservationType = ObservationType.KIN,
         act: ActionType = ActionType.RES,
-        # wind
-        wind_model='simple',
-        wind_force=[0, 0, 0],
         use_normalize=False,
         # residual
         rate_residual_scale=0.1,
@@ -114,8 +111,7 @@ class BaseResidualAviary(BaseAviary):
             False,  # Remove of RPM sliders from all single agent learning aviaries
             vision_attributes=False,
             dynamics_attributes=False,
-            wind_model=wind_model,
-            wind_force=wind_force)
+            )
 
     ################################################################################
 
@@ -131,8 +127,7 @@ class BaseResidualAviary(BaseAviary):
         if self.ACT_TYPE == ActionType.RES:
             size = 4
         else:
-            print("[ERROR] in BaseSingleAgentAviary._actionSpace()")
-            exit()
+            raise "[ERROR] in BaseSingleAgentAviary._actionSpace()"
         return spaces.Box(low=-1 * np.ones(size),
                           high=np.ones(size),
                           dtype=np.float32)
@@ -155,9 +150,6 @@ class BaseResidualAviary(BaseAviary):
             thrust_residual=thrust_residual
             # target_rpy=INIT_RPYS[0, :]
         )
-        # print(action)
-        # while 1:
-        #     continue
         clipped_action = np.clip(np.array(action), 0, self.MAX_RPM)
         return clipped_action
 

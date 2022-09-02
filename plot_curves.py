@@ -1,15 +1,13 @@
-import sys
+import os
 import numpy as np
-from numpy import array
 import matplotlib.pyplot as plt
 import csv
-import torch
 import pretty_errors
 
 
-def check_train(trial_name):
+def check_train(trial_path):
 
-    filename = 'logs/' + trial_name + '/evaluations.npz'
+    filename = os.path.join(trial_path, 'evaluations.npz')
     data = np.load(filename)
     eval_timestep_all = []
     eval_mean_reward_all = []
@@ -21,7 +19,7 @@ def check_train(trial_name):
     ##################### Load data ######################
 
     # Load training details
-    progress_path = 'logs/' + trial_name + '/progress.csv'
+    progress_path = os.path.join(trial_path, 'progress.csv')
 
     # time/total timesteps,train/ent_coef,time/fps,train/critic_loss,rollout/ep_len_mean,train/learning_rate,train/n_updates,time/time_elapsed,rollout/ep_rew_mean,train/ent_coef_loss,train/actor_loss,time/episodes,eval/mean_reward,eval/mean_ep_length
 
@@ -80,5 +78,13 @@ def check_train(trial_name):
 
 
 if __name__ == '__main__':
-    yaml_file_name = sys.argv[1]
-    check_train(trial_name=yaml_file_name)
+
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-t",
+                        "--trial",
+                        help="trial name",
+                        type=str)
+    args = parser.parse_args()
+
+    check_train(trial_path=args.trial)

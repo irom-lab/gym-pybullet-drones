@@ -1,5 +1,6 @@
 import numpy as np
 import pybullet as p
+import logging
 
 
 class Wind():
@@ -13,10 +14,10 @@ class Wind():
         wind_model='basic',
         wind_force=[0, 0, 0], #used in _drag function (to be depreciated)
         wind_vector=np.array([1.1, 0, 0]).reshape((3,1)), #used in _wind_aero_... functions
-        **kwargs
+        **kwargs,
     ):
         self.wind_model = wind_model
-        self.wind_force = wind_force    # TODO?
+        self.wind_force = np.array(wind_force)
         self.wind_vector = wind_vector
         
         # Constants for WIND_AERO_DRAG
@@ -93,8 +94,6 @@ class Wind():
             The ordinal number/position of the desired drone in list self.DRONE_IDS.
 
         """
-        print(wind_force)
-        print(self.wind_force)
         if not wind_force: wind_force = self.wind_force
         base_rot = np.array(
             p.getMatrixFromQuaternion(self.quat[nth_drone, :])).reshape(
@@ -106,9 +105,8 @@ class Wind():
             drag_factors *
             np.array(self.vel[nth_drone, :] + wind_force)
         )  # vel and wind in global frame, drag in local frame
-        print('here (wind.py)')
-        print('wind force = ' + str(wind_force))
-        print('drag = '+ str(drag))
+        # logging.info('wind force = ' + str(wind_force))
+        # logging.info('drag = '+ str(drag))
         p.applyExternalForce(self.DRONE_IDS[nth_drone],
                                 4,
                                 forceObj=drag,
@@ -276,7 +274,7 @@ class Wind():
             g4 = 1 #change magnitude of dip before gust
             g5 = 2 #change magnitude of dip after gust
         else:
-            print('No known gust_type specified.')
+            logging.error('No known gust_type specified.')
             return 0
 
         g2r = 2*g3/tg1
@@ -291,4 +289,3 @@ class Wind():
         else: #Falling portion
             tstar = t + 0.5*(tg2 - tg1)-th
             return g1*(1-(g2f*tstar-g3)**2)*np.exp(-(g2f*tstar-g3)**2/g5)
-
