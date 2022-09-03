@@ -191,10 +191,15 @@ class HoverResidualAviary(BaseResidualAviary):
                 state[13:16]) != 0 else state[13:16]
 
         norm_and_clipped = np.hstack([
-            normalized_pos_xy, normalized_pos_z, state[3:7], normalized_rp,
-            normalized_y, normalized_vel_xy, normalized_vel_z,
-            normalized_ang_vel
-        ]).reshape(16, )  # no rpms
+            normalized_pos_xy, 
+            normalized_pos_z, 
+            # state[3:7], 
+            normalized_rp,
+            normalized_y, 
+            normalized_vel_xy, 
+            normalized_vel_z,
+            # normalized_ang_vel
+        ]).reshape(9, )  # no rpms
 
         return norm_and_clipped
 
@@ -279,10 +284,18 @@ class WindHoverResidualAviary(HoverResidualAviary, Wind):
     
     def _observationSpace(self):
         obs_lower_bound = np.array([
-            -1, -1, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
+            -1, -1, 0, 
+            # -1, -1, -1, -1, 
+            -1, -1, -1, 
+            -1, -1, -1, 
+            # -1, -1, -1, 
         ])  # 16
         obs_upper_bound = np.array([
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 
+            # 1, 1, 1, 1, 
+            1, 1, 1, 
+            1, 1, 1, 
+            # 1, 1, 1,
         ])
         # Add wind frames - use 3-dim wind vector - normalized
         obs_lower_bound = np.hstack((obs_lower_bound, -np.ones(3*self.wind_num_frame)))
