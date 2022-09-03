@@ -142,7 +142,7 @@ class BaseResidualAviary(BaseAviary):
         thrust_residual = action[3] * self.thrust_residual_scale
 
         state = self._getDroneStateVector(0)
-        current_yaw = state[9]  # TODO: check
+        current_yaw = state[9]
         action, _, _ = self.ctrl.computeControlFromState(
             state=state,
             target_pos=self.TARGET_POS,

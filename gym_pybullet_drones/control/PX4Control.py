@@ -188,6 +188,7 @@ class PX4Control(BaseControl):
         self.acc_sp = np.zeros((3))
         self.thrust_sp = np.zeros((3))
         self.eul_sp = target_rpy    # we set yaw sp to be current yaw
+        # self.eul_sp = np.zeros((3))
         self.pqr_sp = 0
         self.yawFF = 0
 
@@ -200,6 +201,9 @@ class PX4Control(BaseControl):
         self.attitude_control()
 
         # Rate controller
+        # print('Rate residual: ', rate_residual)
+        # print('Thrust residual: ', thrust_residual)
+        # print('eul_sp: ', self.eul_sp)
         self.rate_sp += rate_residual
         self.rate_control()
 

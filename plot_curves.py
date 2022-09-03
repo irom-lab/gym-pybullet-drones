@@ -64,17 +64,18 @@ def check_train(trial_path):
              eval_mean_reward_all,
              color='brown',
              label='Avg return')
-    # ax2.plot(timestep_all, critic_loss_all, color='brown', label='Avg q loss')
+    ax2.plot(timestep_all, critic_loss_all, color='brown', label='Avg q loss')
     # ax3.plot(timestep_all, actor_loss_all, color='brown', label='Avg pi loss')
     # ax4.plot(timestep_all, alpha_all, color='brown', label='Alpha')
     # ax5.plot(timestep_all, entropy_all, color='brown', label='Entropy')
-    ax1.set_yticks(np.arange(-5, 0.1, step=0.2))
+    # ax1.set_yticks(np.arange(-5, 0.1, step=0.2))
     ax1.legend()
     ax2.legend()
     # ax3.legend()
     # ax4.legend()
     # ax5.legend()
     plt.savefig('curve.png')
+    # plt.show()
 
 
 if __name__ == '__main__':

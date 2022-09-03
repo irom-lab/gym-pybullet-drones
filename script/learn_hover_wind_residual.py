@@ -73,8 +73,8 @@ if __name__ == "__main__":
         max_wind=cfg.max_wind,
         wind_obs_freq=cfg.wind_obs_freq,
         #
-        init_xy_range=cfg.init_xy_range,    # train with randomized init
-        init_z_range=cfg.init_z_range,
+        init_xy_range=cfg.train_init_xy_range,    # train with randomized init
+        init_z_range=cfg.train_init_z_range,
         rate_residual_scale=cfg.rate_residual_scale,
         thrust_residual_scale=cfg.thrust_residual_scale)
     eval_env_kwargs = dict(
@@ -93,8 +93,8 @@ if __name__ == "__main__":
         max_wind=cfg.max_wind,
         wind_obs_freq=cfg.wind_obs_freq,
         #
-        init_xy_range=cfg.init_xy_range,    # test with randomized init too
-        init_z_range=cfg.init_z_range,
+        init_xy_range=cfg.test_init_xy_range,    # test with randomized init too
+        init_z_range=cfg.test_init_z_range,
         # fixed_init_pos=[cfg.fixed_init_val],  # add dimension
         rate_residual_scale=cfg.rate_residual_scale,
         thrust_residual_scale=cfg.thrust_residual_scale)
@@ -138,6 +138,7 @@ if __name__ == "__main__":
             batch_size=cfg.batch_size,
             buffer_size=cfg.buffer_size,
             learning_rate=cfg.learning_rate,
+            learning_starts=cfg.learning_starts,
             train_freq=(cfg.train_freq, "step"),
             policy_kwargs=policy_kwargs,
             ent_coef=cfg.ent_coef,
@@ -154,6 +155,7 @@ if __name__ == "__main__":
             batch_size=cfg.batch_size,
             buffer_size=cfg.buffer_size,
             learning_rate=cfg.learning_rate,
+            learning_starts=cfg.learning_starts,
             train_freq=(cfg.train_freq, "step"),
             policy_kwargs=policy_kwargs,
             verbose=1,

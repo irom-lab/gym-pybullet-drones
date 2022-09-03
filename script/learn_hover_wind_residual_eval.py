@@ -46,7 +46,9 @@ if __name__ == "__main__":
         max_wind=cfg.max_wind,
         wind_obs_freq=cfg.wind_obs_freq,
         #
-        fixed_init_pos=[cfg.fixed_init_val],  # add dimension
+        init_xy_range=cfg.init_xy_range,    # test with randomized init too
+        init_z_range=cfg.init_z_range,
+        # fixed_init_pos=[cfg.fixed_init_val],  # add dimension
         rate_residual_scale=cfg.rate_residual_scale,
         thrust_residual_scale=cfg.thrust_residual_scale
     )
@@ -83,7 +85,9 @@ if __name__ == "__main__":
         max_wind=cfg.max_wind,
         wind_obs_freq=cfg.wind_obs_freq,
         #
-        fixed_init_pos=[cfg.fixed_init_val],  # add dimension
+        init_xy_range=cfg.init_xy_range,    # test with randomized init too
+        init_z_range=cfg.init_z_range,
+        # fixed_init_pos=[cfg.fixed_init_val],  # add dimension
         rate_residual_scale=cfg.rate_residual_scale,
         thrust_residual_scale=cfg.thrust_residual_scale
     )

@@ -77,11 +77,13 @@ class CustomCallback(BaseCallback):
                 'train reward': self.logger.train_rollout_record_copy['rollout/ep_rew_mean'],
                 'train length': self.logger.train_rollout_record_copy['rollout/ep_len_mean'],
                 #
+                # 'value_loss': self.logger.train_record_copy['train/value_loss'],
+                # 'policy_gradient_loss': self.logger.train_record_copy['train/policy_gradient_loss'],
                 'sac_ent_coef': self.logger.train_record_copy['train/ent_coef'],
-                'sac_actor_loss': self.logger.train_record_copy['train/actor_loss'],
-                'sac_critic_loss': self.logger.train_record_copy['train/critic_loss'],
+                'actor_loss': self.logger.train_record_copy['train/actor_loss'],
+                'critic_loss': self.logger.train_record_copy['train/critic_loss'],
                 'sac_entropy': self.logger.train_record_copy['train/entropy'],
-                'sac_num_update': self.logger.train_record_copy['train/n_updates'],
+                'num_update': self.logger.train_record_copy['train/n_updates'],
             }
             
             wandb.log(out, step=step, commit=True)
