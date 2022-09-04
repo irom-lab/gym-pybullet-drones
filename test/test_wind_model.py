@@ -16,7 +16,7 @@ env = WindHoverResidualAviary(
     aggregate_phy_steps=6,  # 60 Hz
     episode_len_sec=episode_len_sec,
     physics=Physics.PYB,
-    fixed_init_pos=[[-0.1,0.1,0.9]],
+    fixed_init_pos=[[-0.2,0.2,0.9]],
     # wind
     wind_model='aero_drag',
     wind_vector=np.array([5, 0, 0]),

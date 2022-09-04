@@ -198,8 +198,8 @@ class HoverResidualAviary(BaseResidualAviary):
             normalized_y, 
             normalized_vel_xy, 
             normalized_vel_z,
-            # normalized_ang_vel
-        ]).reshape(9, )  # no rpms
+            normalized_ang_vel
+        ]).reshape(12, )  # no rpms
 
         return norm_and_clipped
 
@@ -276,7 +276,8 @@ class WindHoverResidualAviary(HoverResidualAviary, Wind):
 
         # Reset wind history
         self.wind_frames = deque(maxlen=self.wind_frame_cover)
-        self.wind_frames.appendleft(self.rng.random(3)*0.1) # small random value initially
+        # self.wind_frames.appendleft(self.rng.random(3)*0.1) # small random value initially
+        self.wind_frames.appendleft(self.wind_vector) #!
 
         # Get new obs
         return super().reset()
@@ -288,14 +289,14 @@ class WindHoverResidualAviary(HoverResidualAviary, Wind):
             # -1, -1, -1, -1, 
             -1, -1, -1, 
             -1, -1, -1, 
-            # -1, -1, -1, 
+            -1, -1, -1, 
         ])  # 16
         obs_upper_bound = np.array([
             1, 1, 1, 
             # 1, 1, 1, 1, 
             1, 1, 1, 
             1, 1, 1, 
-            # 1, 1, 1,
+            1, 1, 1,
         ])
         # Add wind frames - use 3-dim wind vector - normalized
         obs_lower_bound = np.hstack((obs_lower_bound, -np.ones(3*self.wind_num_frame)))

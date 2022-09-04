@@ -203,12 +203,15 @@ class PX4Control(BaseControl):
         # Rate controller
         # print('Rate residual: ', rate_residual)
         # print('Thrust residual: ', thrust_residual)
+        # print('Rate setpoint: ', self.rate_sp)
         # print('eul_sp: ', self.eul_sp)
         self.rate_sp += rate_residual
+        # self.rate_sp = rate_residual
         self.rate_control()
 
         # Get thrust
         thrust = np.linalg.norm(self.thrust_sp) + thrust_residual
+        # thrust = thrust_residual
 
         # Mixing
         t = np.array(

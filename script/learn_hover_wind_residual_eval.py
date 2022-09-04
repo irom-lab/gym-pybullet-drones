@@ -46,8 +46,8 @@ if __name__ == "__main__":
         max_wind=cfg.max_wind,
         wind_obs_freq=cfg.wind_obs_freq,
         #
-        init_xy_range=cfg.init_xy_range,    # test with randomized init too
-        init_z_range=cfg.init_z_range,
+        init_xy_range=cfg.test_init_xy_range,    # test with randomized init too
+        init_z_range=cfg.test_init_z_range,
         # fixed_init_pos=[cfg.fixed_init_val],  # add dimension
         rate_residual_scale=cfg.rate_residual_scale,
         thrust_residual_scale=cfg.thrust_residual_scale
@@ -70,7 +70,7 @@ if __name__ == "__main__":
     env = WindHoverResidualAviary(
         seed=cfg.seed,
         gui=True,
-        record=True,
+        record=False,
         video_path=os.path.join(cfg.log_dir, 'best_video.mp4'),
         act=act,
         physics=physics,
@@ -85,8 +85,8 @@ if __name__ == "__main__":
         max_wind=cfg.max_wind,
         wind_obs_freq=cfg.wind_obs_freq,
         #
-        init_xy_range=cfg.init_xy_range,    # test with randomized init too
-        init_z_range=cfg.init_z_range,
+        init_xy_range=cfg.test_init_xy_range,    # test with randomized init too
+        init_z_range=cfg.test_init_z_range,
         # fixed_init_pos=[cfg.fixed_init_val],  # add dimension
         rate_residual_scale=cfg.rate_residual_scale,
         thrust_residual_scale=cfg.thrust_residual_scale
@@ -98,8 +98,8 @@ if __name__ == "__main__":
     reward_total = 0
     for i in range(int(cfg.episode_len_sec * env.SIM_FREQ / env.AGGR_PHY_STEPS)):
         action, _states = model.predict(obs, deterministic=True)
-
         # action = np.array([0.0, 0.0, 0.0, 0.0])
+        print(action)
         obs, reward, done, info = env.step(action)
         raw_obs = info['raw_obs']
         pb_logger.log(
@@ -119,7 +119,7 @@ if __name__ == "__main__":
         sync(i, start, env.TIMESTEP)
         if done:
             obs = env.reset()
-        time.sleep(0.02)
+        time.sleep(0.1)
     env.close()
     pb_logger.plot()
     print('Total reward: ', reward_total)
