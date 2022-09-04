@@ -190,6 +190,33 @@ class HoverResidualAviary(BaseResidualAviary):
             state[13:16]) if np.linalg.norm(
                 state[13:16]) != 0 else state[13:16]
 
+        # MAX_LIN_VEL_XY = 0.5
+        # MAX_LIN_VEL_Z = 0.5
+        # MAX_XY = 0.5
+        # MAX_Z = 1.5
+        # MAX_PITCH_ROLL = np.pi/60
+        # MAX_ANG_VEL = 0.5
+        
+        # clipped_pos_xy = np.clip(state[0:2], -MAX_XY, MAX_XY)
+        # clipped_pos_z = np.clip(state[2], 0.5, MAX_Z)
+        # clipped_rp = np.clip(state[7:9], -MAX_PITCH_ROLL, MAX_PITCH_ROLL)
+        # clipped_vel_xy = np.clip(state[10:12], -MAX_LIN_VEL_XY, MAX_LIN_VEL_XY)
+        # clipped_vel_z = np.clip(state[12], -MAX_LIN_VEL_Z, MAX_LIN_VEL_Z)
+        # clipped_vel_ang_vel = np.clip(state[13:16], -MAX_ANG_VEL, MAX_ANG_VEL)
+
+        # if self.GUI:
+        #     self._clipAndNormalizeStateWarning(state, clipped_pos_xy,
+        #                                         clipped_pos_z, clipped_rp,
+        #                                        clipped_vel_xy, clipped_vel_z)
+
+        # normalized_pos_xy = state[0:2] / MAX_XY
+        # normalized_pos_z = (clipped_pos_z - 0.5) / (MAX_Z - 0.5)
+        # normalized_rp = clipped_rp / MAX_PITCH_ROLL
+        # normalized_y = state[9] / np.pi  # No reason to clip
+        # normalized_vel_xy = clipped_vel_xy / MAX_LIN_VEL_XY
+        # normalized_vel_z = clipped_vel_z / MAX_LIN_VEL_Z
+        # normalized_ang_vel = clipped_vel_ang_vel / MAX_ANG_VEL
+
         norm_and_clipped = np.hstack([
             normalized_pos_xy, 
             normalized_pos_z, 
