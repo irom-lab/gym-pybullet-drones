@@ -11,14 +11,18 @@ class Wind():
 
     def __init__(
         self,
-        wind_model='basic',
-        wind_force=[0, 0, 0], #used in _drag function (to be depreciated)
-        wind_vector=np.array([1, 0, 0]), #used in _wind_aero_... functions,
+        wind_model='aero_drag',
+        # wind_force=[0, 0, 0], #used in _drag function (to be depreciated)
+        # wind_vector=np.array([1, 0, 0]), #used in _wind_aero_... functions,
+        wind_profile='const',
+        wind_profile_args={},
         **kwargs,
     ):
         self.wind_model = wind_model
-        self.wind_force = np.array(wind_force)
-        self.wind_vector = wind_vector
+        # self.wind_force = np.array(wind_force)
+        # self.wind_vector = wind_vector
+        self.wind_profile = wind_profile
+        self.wind_profile_args = wind_profile_args
         
         # Constants for WIND_AERO_DRAG
         self.rho = 1.225    # Density of air [kg/m^3]
@@ -53,6 +57,56 @@ class Wind():
             self._wind_bf_drag(**kwargs)
         else:
             raise "Unknown wind model!"
+    
+    
+    def reset_wind_profile(self):
+        # Call when reset env
+
+        if self.wind_profile == 'const':
+            self.wind_vector = np.array(self.wind_profile_args['wind_vector'])
+            # TODO: random
+
+        elif self.wind_profile == 'step_rising':
+            # uniform distribution
+            t_bottom_low = self.wind_profile_args['t_bottom_low']
+            t_bottom_high = self.wind_profile_args['t_bottom_high']
+            self.t_bottom = self.rng.random() * (t_bottom_high - t_bottom_low) + t_bottom_low
+            
+            slope_low = self.wind_profile_args['slope_low']
+            slope_high = self.wind_profile_args['slope_high']
+            self.slope = self.rng.random() * (slope_high - slope_low) + slope_low
+
+            vel_bottom_low = self.wind_profile_args['vel_bottom_low']
+            vel_bottom_high = self.wind_profile_args['vel_bottom_high']
+            self.vel_bottom = self.rng.random() * (vel_bottom_high - vel_bottom_low) + vel_bottom_low
+
+            vel_top_low = self.wind_profile_args['vel_top_low']
+            vel_top_high = self.wind_profile_args['vel_top_high']
+            self.vel_top = self.rng.random() * (vel_top_high - vel_top_low) + vel_top_low
+
+            rise_time = (self.vel_top - self.vel_bottom) / self.slope
+            self.t_top = self.t_bottom + rise_time            
+            assert self.t_top < self.EPISODE_LEN_SEC
+        else:
+            raise 'Unknown wind profile!'
+
+    
+    def update_wind(self, t):
+        if self.wind_profile == 'const':
+            # no need to change wind_vector
+            pass
+        elif self.wind_profile == 'step_rising':
+            # assume in x direction
+            if t < self.t_bottom:
+               vel = self.vel_bottom
+            elif t < self.t_top:
+                vel = (t-self.t_bottom)*self.slope + self.vel_bottom
+            else:
+                vel = self.vel_top
+            self.wind_vector = np.array([vel, 0, 0])
+            print('Vel: ', vel)
+        else:
+            raise 'Unknown widn profile!'
     
 
     ################################################################################

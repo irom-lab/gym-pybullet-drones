@@ -339,12 +339,18 @@ class BaseAviary(gym.Env):
         self._updateAndStoreKinematicInformation()
         #### Start video recording #################################
         self._startVideoRecording()
+        
+        # Reset wind
+        if hasattr(self, 'wind_model'):
+            print('reset wind!')
+            self.reset_wind_profile()
+        
         #### Return the initial observation ########################
         return self._computeObs()
 
     ################################################################################
 
-    def step(self, action):
+    def step(self, action, verbose=False):
         """Advances the environment by one simulation step.
 
         Parameters
@@ -419,7 +425,8 @@ class BaseAviary(gym.Env):
         #### Save, preprocess, and clip the action to the max. RPM #
         else:
             self._saveLastAction(action)
-            clipped_action = np.reshape(self._preprocessAction(action),
+            clipped_action = np.reshape(
+                self._preprocessAction(action, verbose=verbose),
                                         (self.NUM_DRONES, 4))
 
         #### Repeat for as many as the aggregate physics steps #####
@@ -457,18 +464,16 @@ class BaseAviary(gym.Env):
                 
                 # Apply wind model if class attribute exists
                 if hasattr(self, 'wind_model'):
-                    # wall_clock_time = time.time() - self.RESET_TIME
-                    # gust = self.wind_function(wall_clock_time, 3, 0)
-                    # self.wind_force[0] = 1000*gust
+                    
+                    # Update wind
+                    self.update_wind(t=self.step_counter*self.TIMESTEP)
+
+                    # Apply wind
                     self.apply_wind(rpm=self.last_clipped_action[i, :],
                                     nth_drone=i)
 
-                    #TODO: Update wind vector, if non-constant
-
                     # Update wind history
                     if (self.step_counter + step_within_aggr) % self.wind_obs_aggregate_phy_steps == 0:
-
-                        #! Expects wind_vector updated
                         self.wind_frames.appendleft(self.wind_vector)
 
             #### PyBullet computes the new state, unless Physics.DYN ###
@@ -477,6 +482,9 @@ class BaseAviary(gym.Env):
 
             #### Save the last applied action (e.g. to compute drag) ###
             self.last_clipped_action = clipped_action
+
+            #### Advance the step counter ##############################
+            self.step_counter += 1
 
         #### Update and store the drones kinematic information #####
         self._updateAndStoreKinematicInformation()
@@ -489,8 +497,6 @@ class BaseAviary(gym.Env):
         info = self._computeInfo()
         info['raw_obs'] = raw_obs
 
-        #### Advance the step counter ##############################
-        self.step_counter = self.step_counter + (1 * self.AGGR_PHY_STEPS)
         return obs, reward, done, info
 
     ################################################################################
@@ -1209,7 +1215,7 @@ class BaseAviary(gym.Env):
 
 
     ################################################################################
-    def _preprocessAction(self, action):
+    def _preprocessAction(self, action, verbose=False):
         """Pre-processes the action passed to `.step()` into motors' RPMs.
 
         Must be implemented in a subclass.

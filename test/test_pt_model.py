@@ -6,12 +6,14 @@ from stable_baselines3 import SAC
 from stable_baselines3 import TD3
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
+import torch
 
 from gym_pybullet_drones.utils.Logger import Logger
 from gym_pybullet_drones.envs.residual_rl.HoverResidualAviary import WindHoverResidualAviary
 from gym_pybullet_drones.utils.utils import sync
 from gym_pybullet_drones.envs.BaseAviary import DroneModel, Physics
 from gym_pybullet_drones.envs.residual_rl.BaseResidualAviary import ActionType
+from .run_pt_model import MLP, normalize_obs
 
 import argparse
 from omegaconf import OmegaConf
@@ -66,6 +68,14 @@ if __name__ == "__main__":
     elif cfg.model_type == 'ppo':
         model = PPO.load(best_model_path)
 
+    input_size = 15
+    layer_size_list = [input_size] + cfg.net_arch + [4]
+    mlp = MLP(dimList=layer_size_list,
+              activation_type='relu',)
+    policy_path = '/home/allen/gym-pybullet-drones/logs/no_wind_3/best_model/policy.pth'
+    var = torch.load(policy_path)
+    mlp.load_weight(var)
+
     #### Show (and record a video of) the model's performance ##
     env = WindHoverResidualAviary(
         seed=cfg.seed,
@@ -98,10 +108,21 @@ if __name__ == "__main__":
     reward_total = 0
     for i in range(int(cfg.episode_len_sec * env.SIM_FREQ / env.AGGR_PHY_STEPS)):
         action, _states = model.predict(obs, deterministic=True)
-        # action = np.array([0.0, 0.0, 0.0, 0.0])
-        # print(action)
+        
+        # Inference
+        # with torch.no_grad():
+        #     action_scaled = mlp.forward(obs)
 
-        obs, reward, done, info = env.step(action, verbose=True)
+        # # Convert to numpy, and reshape to the original action shape
+        # action_scaled = action_scaled.cpu().numpy().flatten()
+
+        # # Unscale action
+        # low, high = -np.ones((4)), np.ones((4))
+        # action = low + (0.5 * (action_scaled + 1.0) * (high - low))
+        
+        # action = np.array([0.0, 0.0, 0.0, 0.0])
+        print(action)
+        obs, reward, done, info = env.step(action)
         raw_obs = info['raw_obs']
         pb_logger.log(
             drone=0,

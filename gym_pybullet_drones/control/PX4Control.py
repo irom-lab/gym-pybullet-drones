@@ -59,7 +59,7 @@ class PX4Control(BaseControl):
             self.vel_D_gain = np.array([0.01, 0.01, 0.0])
             self.vel_I_gain = np.array([0.4, 0.4, 2])
             self.rate_P_gain = np.array([0.15, 0.15, 0.2])
-            self.rate_D_gain = np.array([0.003, 0.003, 0.0])
+            self.rate_D_gain = np.array([0.003, 0.003, 0.0])  #! px4 uses 0.004
 
         elif self.DRONE_MODEL == DroneModel.CF2X:
             self.mB = 0.0397

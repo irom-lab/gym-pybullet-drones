@@ -303,8 +303,8 @@ class WindHoverResidualAviary(HoverResidualAviary, Wind):
 
         # Reset wind history
         self.wind_frames = deque(maxlen=self.wind_frame_cover)
-        # self.wind_frames.appendleft(self.rng.random(3)*0.1) # small random value initially
-        self.wind_frames.appendleft(self.wind_vector) #!
+        self.wind_frames.appendleft(self.rng.random(3)*0.1) # small random value initially
+        # self.wind_frames.appendleft(self.wind_vector)
 
         # Get new obs
         return super().reset()
