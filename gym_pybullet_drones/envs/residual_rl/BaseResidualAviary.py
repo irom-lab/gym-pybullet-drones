@@ -139,7 +139,7 @@ class BaseResidualAviary(BaseAviary):
         Use residual. Use current yaw as yaw setpoint.
         """
         rate_residual = action[:-1] * self.rate_residual_scale
-        thrust_residual = (action[-1]+1)/2 * self.thrust_residual_scale
+        thrust_residual = action[-1] * self.thrust_residual_scale
         if verbose:
             print('Residual: ', rate_residual, thrust_residual)
 

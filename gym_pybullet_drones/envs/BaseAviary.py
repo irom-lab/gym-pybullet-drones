@@ -342,7 +342,6 @@ class BaseAviary(gym.Env):
         
         # Reset wind
         if hasattr(self, 'wind_model'):
-            print('reset wind!')
             self.reset_wind_profile()
         
         #### Return the initial observation ########################

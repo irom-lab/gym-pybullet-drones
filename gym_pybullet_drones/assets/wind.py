@@ -104,7 +104,6 @@ class Wind():
             else:
                 vel = self.vel_top
             self.wind_vector = np.array([vel, 0, 0])
-            print('Vel: ', vel)
         else:
             raise 'Unknown widn profile!'
     
