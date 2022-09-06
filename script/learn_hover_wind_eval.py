@@ -82,7 +82,7 @@ if __name__ == "__main__":
     reward_total = 0
     for i in range(int(episode_sec * env.SIM_FREQ / env.AGGR_PHY_STEPS)):
         action, _states = model.predict(obs, deterministic=True)
-        print(action)
+
         # action = np.array([0.0, 0.0, 1.0, 0.0])
         obs, reward, done, info = env.step(action)
         pb_logger.log(

@@ -144,13 +144,13 @@ class BaseResidualAviary(BaseAviary):
             print('Residual: ', rate_residual, thrust_residual)
 
         state = self._getDroneStateVector(0)
-        current_yaw = state[9]
+        # current_yaw = state[9]
         action, _, _ = self.ctrl.computeControlFromState(
             state=state,
             target_pos=self.TARGET_POS,
             rate_residual=rate_residual,
             thrust_residual=thrust_residual,
-            target_rpy=np.array([0, 0, current_yaw]),
+            # target_rpy=np.array([0, 0, current_yaw]),
         )
         
         # TODO: use minRPM?

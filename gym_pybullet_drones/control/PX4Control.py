@@ -143,7 +143,7 @@ class PX4Control(BaseControl):
     def computeControlFromState(self,
                                 state,
                                 target_pos,
-                                target_rpy=np.zeros((3)),
+                                # target_rpy=np.zeros((3)),
                                 rate_residual=np.zeros((3)),
                                 thrust_residual=0):
         """Computes the PID control action (as RPMs) for a single drone.
@@ -187,8 +187,8 @@ class PX4Control(BaseControl):
         self.vel_sp = np.zeros((3))
         self.acc_sp = np.zeros((3))
         self.thrust_sp = np.zeros((3))
-        self.eul_sp = target_rpy    # we set yaw sp to be current yaw
-        # self.eul_sp = np.zeros((3))
+        # self.eul_sp = target_rpy    # we set yaw sp to be current yaw
+        self.eul_sp = np.zeros((3))
         self.pqr_sp = 0
         self.yawFF = 0
 
