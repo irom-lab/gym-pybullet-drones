@@ -473,7 +473,7 @@ class BaseAviary(gym.Env):
 
                     # Update wind history
                     if (self.step_counter + step_within_aggr) % self.wind_obs_aggregate_phy_steps == 0:
-                        self.wind_frames.appendleft(self.wind_vector)
+                        self.wind_frames.appendleft(self.sensor_vector)
 
             #### PyBullet computes the new state, unless Physics.DYN ###
             if self.PHYSICS != Physics.DYN:

@@ -334,13 +334,15 @@ class WindHoverResidualAviary(HoverResidualAviary, Wind):
 
     
     def _computeObs(self):
-        # TODO: last state and action?
+        """Only stacking wind observation. No history for drone state (velocity included). No action."""
         
         # Get state - already normalized
         obs = super()._computeObs()
 
         # Add wind - normalized
-        wind_obs = get_frames(self.wind_frames, self.wind_num_frame, self.wind_frame_skip)
+        wind_obs = get_frames(self.wind_frames, 
+                              self.wind_num_frame, 
+                              self.wind_frame_skip)
         wind_obs = np.clip(wind_obs/self.max_wind, -1, 1)
         # print(wind_obs)
 

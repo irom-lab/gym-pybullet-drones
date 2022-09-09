@@ -192,7 +192,7 @@ if __name__ == "__main__":
     model.save(os.path.join(cfg.log_dir, 'final_model.zip'))
 
     #### Log training progression ############################
-    with np.load(cfg.log_dir + 'evaluations.npz') as data:
+    with np.load(os.path.join(cfg.log_dir, 'evaluations.npz')) as data:
         for j in range(data['timesteps'].shape[0]):
             logging.info(str(data['timesteps'][j]) + "," + str(data['results'][j][0]))
 

@@ -87,23 +87,40 @@ class Wind():
             rise_time = (self.vel_top - self.vel_bottom) / self.slope
             self.t_top = self.t_bottom + rise_time            
             assert self.t_top < self.EPISODE_LEN_SEC
+
+            # noise
+            self.vel_std_bottom = self.wind_profile_args['vel_std_bottom']
+            self.vel_std_slope = self.wind_profile_args['vel_std_slope']
+            self.vel_std_top = self.wind_profile_args['vel_std_top']
+            self.sensor_filter_ratio = self.wind_profile_args['sensor_filter_ratio']
+            self.sensor_std = self.wind_profile_args['sensor_std']
+
         else:
             raise 'Unknown wind profile!'
 
     
     def update_wind(self, t):
+        """Both simulated wind and simulated sensor measurement. Use smaller noise for sensor measurement; requires more filtering in real."""
         if self.wind_profile == 'const':
             # no need to change wind_vector
             pass
         elif self.wind_profile == 'step_rising':
             # assume in x direction
             if t < self.t_bottom:
-               vel = self.vel_bottom
+                true_noise = -self.rng.gumbel(0, self.vel_std_bottom)
+                vel = self.vel_bottom
             elif t < self.t_top:
+                true_noise = -self.rng.gumbel(0, self.vel_std_slope)
                 vel = (t-self.t_bottom)*self.slope + self.vel_bottom
             else:
+                true_noise = -self.rng.gumbel(0, self.vel_std_top)
                 vel = self.vel_top
-            self.wind_vector = np.array([vel, 0, 0])
+            self.wind_vector = np.array([vel + true_noise, 0, 0])
+
+            # Sensor noise proportional to wind noise plus another small noise
+            sensor_noise = true_noise * self.sensor_filter_ratio + self.rng.normal(0, self.sensor_std)
+            sensor = vel + sensor_noise
+            self.sensor_vector = np.array([sensor, 0, 0])
         else:
             raise 'Unknown widn profile!'
     
