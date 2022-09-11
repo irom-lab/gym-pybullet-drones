@@ -205,13 +205,17 @@ class PX4Control(BaseControl):
         # print('Thrust residual: ', thrust_residual)
         # print('Rate setpoint: ', self.rate_sp)
         # print('eul_sp: ', self.eul_sp)
+        from copy import deepcopy
+        raw_sp = deepcopy(self.rate_sp)
         self.rate_sp += rate_residual
-        # self.rate_sp = rate_residual
         self.rate_control()
 
         # Get thrust
-        thrust = np.linalg.norm(self.thrust_sp) + thrust_residual
-        # thrust = thrust_residual
+        raw_thrust = np.linalg.norm(self.thrust_sp)
+        thrust = raw_thrust + thrust_residual
+
+        # Save a copy
+        raw_control = np.hstack((raw_sp, [raw_thrust]))
 
         # Mixing
         t = np.array(
@@ -232,7 +236,7 @@ class PX4Control(BaseControl):
         # print('Input: ', t)
         # # print('Nominal: ', np.sqrt(np.dot(self.mixerFMinv, t)))
         # print('RPM: ', w_cmd)
-        return w_cmd, None, None
+        return w_cmd, None, None, raw_control
 
     ################################################################################
 

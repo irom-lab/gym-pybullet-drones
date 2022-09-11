@@ -142,10 +142,11 @@ class BaseResidualAviary(BaseAviary):
         thrust_residual = action[-1] * self.thrust_residual_scale
         if verbose:
             print('Residual: ', rate_residual, thrust_residual)
+        self.residual = np.hstack((rate_residual, thrust_residual))
 
         state = self._getDroneStateVector(0)
         # current_yaw = state[9]
-        action, _, _ = self.ctrl.computeControlFromState(
+        action, _, _, self.raw_control = self.ctrl.computeControlFromState(
             state=state,
             target_pos=self.TARGET_POS,
             rate_residual=rate_residual,

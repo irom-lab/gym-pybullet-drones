@@ -1,0 +1,62 @@
+import numpy as np
+import matplotlib.pyplot as plt
+plt.rcParams['font.size'] = 18
+
+
+rng = np.random.default_rng()
+
+#
+t_bottom_low = 0.3
+t_bottom_high = 0.6
+slope_low = 2
+slope_high = 4
+vel_bottom_low = 0
+vel_bottom_high = 0.5
+vel_top_low = 3
+vel_top_high = 4
+#
+vel_std_bottom = 0.1
+vel_std_slope = 0.2
+vel_std_top = 0.4
+sensor_filter_ratio = 0.1
+sensor_std = 0.05
+
+fig, axarr = plt.subplots(2, 4)
+for trial in range(8):
+
+    t_bottom = rng.random() * (t_bottom_high - t_bottom_low) + t_bottom_low
+    slope = rng.random() * (slope_high - slope_low) + slope_low
+    vel_bottom = rng.random() * (vel_bottom_high - vel_bottom_low) + vel_bottom_low
+    vel_top = rng.random() * (vel_top_high - vel_top_low) + vel_top_low
+    rise_time = (vel_top - vel_bottom) / slope
+    t_top = t_bottom + rise_time   
+
+    t_all = np.linspace(0, 5, 1000)
+    vel_all = []
+    sensor_all = []
+    for t in t_all:
+        if t < t_bottom:
+            true_noise = -rng.gumbel(0, vel_std_bottom)
+            vel = vel_bottom + true_noise
+            sensor = vel_bottom + true_noise * sensor_filter_ratio + rng.normal(0, sensor_std)
+        elif t < t_top:
+            true_noise = -rng.gumbel(0, vel_std_slope)
+            vel = (t-t_bottom)*slope + vel_bottom + true_noise
+            sensor = (t-t_bottom)*slope + vel_bottom  + true_noise * sensor_filter_ratio + rng.normal(0, sensor_std)
+        else:
+            true_noise = -rng.gumbel(0, vel_std_top)
+            vel = vel_top + true_noise
+            sensor = vel_top + true_noise * sensor_filter_ratio + rng.normal(0, sensor_std)
+        vel_all += [vel]
+        sensor_all += [sensor]
+
+    trial_x = int(trial / 4)
+    trial_y = int(trial % 4)
+    print(trial_x, trial_y)
+    axarr[trial_x, trial_y].plot(t_all, vel_all, label='simulated wind')
+    axarr[trial_x, trial_y].plot(t_all, sensor_all, label='simulated sensor')
+    plt.legend()
+    plt.xlabel('Time (s)')
+    plt.ylabel('Speed (m/s)')
+# plt.show()
+plt.savefig('test.png')

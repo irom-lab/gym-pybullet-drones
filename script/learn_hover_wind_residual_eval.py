@@ -100,19 +100,18 @@ if __name__ == "__main__":
     for i in range(int(cfg.episode_len_sec * env.SIM_FREQ / env.AGGR_PHY_STEPS)):
         action, _states = model.predict(obs, deterministic=True)
         # action = np.array([0.0, 0.0, 0.0, 0.0])
-        # print(action)
 
         obs, reward, done, info = env.step(action, verbose=True)
+
         raw_obs = info['raw_obs']
         pb_logger.log(
             drone=0,
             timestamp=i / env.SIM_FREQ,
             state=np.hstack([
-                raw_obs[0:3],
-                np.zeros(4), raw_obs[3:15],
-                np.resize(action, (4))
+                raw_obs[0:16],
+                env.residual,
+                env.raw_control,
             ]),
-            # control=action,
             control=np.zeros(12),
         )
         reward_total += reward
@@ -121,7 +120,7 @@ if __name__ == "__main__":
         sync(i, start, env.TIMESTEP)
         if done:
             obs = env.reset()
-        time.sleep(0.1)
+        time.sleep(0.01)
     env.close()
     pb_logger.plot()
     print('Total reward: ', reward_total)
