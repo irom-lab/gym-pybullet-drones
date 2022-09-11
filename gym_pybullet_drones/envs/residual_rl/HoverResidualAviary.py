@@ -278,7 +278,10 @@ class WindHoverResidualAviary(HoverResidualAviary, Wind):
                        wind_frame_skip=0, 
                        max_wind=10,
                        wind_obs_freq=120,
+                       wind_aware=True,
                        **kwargs):
+        self.wind_aware = wind_aware
+        
         # For normalization as state input
         self.max_wind = max_wind
 
@@ -326,8 +329,9 @@ class WindHoverResidualAviary(HoverResidualAviary, Wind):
             1, 1, 1,
         ])
         # Add wind frames - use 3-dim wind vector - normalized
-        obs_lower_bound = np.hstack((obs_lower_bound, -np.ones(3*self.wind_num_frame)))
-        obs_upper_bound = np.hstack((obs_upper_bound, np.ones(3*self.wind_num_frame)))
+        if self.wind_aware:
+            obs_lower_bound = np.hstack((obs_lower_bound, -np.ones(3*self.wind_num_frame)))
+            obs_upper_bound = np.hstack((obs_upper_bound, np.ones(3*self.wind_num_frame)))
         return spaces.Box(low=obs_lower_bound,
                           high=obs_upper_bound,
                           dtype=np.float32)
@@ -340,10 +344,12 @@ class WindHoverResidualAviary(HoverResidualAviary, Wind):
         obs = super()._computeObs()
 
         # Add wind - normalized
-        wind_obs = get_frames(self.wind_frames, 
-                              self.wind_num_frame, 
-                              self.wind_frame_skip)
-        wind_obs = np.clip(wind_obs/self.max_wind, -1, 1)
-        # print(wind_obs)
-
-        return np.concatenate((obs, wind_obs))
+        if self.wind_aware:
+            wind_obs = get_frames(self.wind_frames, 
+                                  self.wind_num_frame, 
+                                  self.wind_frame_skip)
+            wind_obs = np.clip(wind_obs/self.max_wind, -1, 1)
+            # print(wind_obs)
+            return np.concatenate((obs, wind_obs))
+        else:
+            return obs

@@ -84,6 +84,7 @@ if __name__ == "__main__":
         wind_frame_skip=cfg.wind_frame_skip, 
         max_wind=cfg.max_wind,
         wind_obs_freq=cfg.wind_obs_freq,
+        wind_aware=cfg.wind_aware,
         #
         init_xy_range=cfg.test_init_xy_range,    # test with randomized init too
         init_z_range=cfg.test_init_z_range,

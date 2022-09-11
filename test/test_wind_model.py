@@ -35,6 +35,7 @@ env = WindHoverResidualAviary(
     wind_frame_skip=2, 
     max_wind=10,
     wind_obs_freq=120,
+    wind_aware=True,
 )
 
 for _ in range(2):
