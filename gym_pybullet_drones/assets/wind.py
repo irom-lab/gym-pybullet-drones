@@ -12,6 +12,7 @@ class Wind():
     def __init__(
         self,
         wind_model='aero_drag',
+        wind_model_args={},
         # wind_force=[0, 0, 0], #used in _drag function (to be depreciated)
         # wind_vector=np.array([1, 0, 0]), #used in _wind_aero_... functions,
         wind_profile='const',
@@ -34,7 +35,7 @@ class Wind():
         self.nu_beta = 1.9  # Blade scaled natural frequency (listed as 1.9 on p.4 of 2016, 1.5 in 2020
         self.gamma = 1.04   # Lock number
         # Vehicle Constants
-        self.Af = 0.02  # Quadrotor frontal area [m^2]
+        self.Af = wind_model_args['area']  # Quadrotor frontal area [m^2]
         self.Cd = 0.8   # Quadrotor drag coefficient
         self.Nr = 4 # Number of rotors
         self.Nb = 2 # Number of blades
@@ -92,9 +93,24 @@ class Wind():
             self.vel_std_bottom = self.wind_profile_args['vel_std_bottom']
             self.vel_std_slope = self.wind_profile_args['vel_std_slope']
             self.vel_std_top = self.wind_profile_args['vel_std_top']
-            self.sensor_filter_ratio = self.wind_profile_args['sensor_filter_ratio']
-            self.sensor_std = self.wind_profile_args['sensor_std']
+            # self.sensor_filter_ratio = self.wind_profile_args['sensor_filter_ratio']
+            # self.sensor_std = self.wind_profile_args['sensor_std']
 
+            # dip
+            self.vel_std_dip = self.wind_profile_args['vel_std_dip']
+            dip_period_low = self.wind_profile_args['dip_period_low']
+            dip_period_high = self.wind_profile_args['dip_period_high']
+            vel_dip_low = self.wind_profile_args['vel_dip_low']
+            vel_dip_high = self.wind_profile_args['vel_dip_high']
+            self.dip_period = self.rng.random() * (dip_period_high - dip_period_low) + dip_period_low
+            self.t_dip_start = self.rng.uniform(self.t_top, self.EPISODE_LEN_SEC)
+            self.t_dip_end = self.rng.uniform(self.t_dip_start, self.t_dip_start+self.dip_period)
+
+            self.vel_dip = self.rng.random() * (vel_dip_high - vel_dip_low) + vel_dip_low
+            
+            self.vel_past = []
+            
+            self.sensor_rolling_step = self.wind_profile_args['sensor_rolling_step']
         else:
             raise 'Unknown wind profile!'
 
@@ -112,15 +128,20 @@ class Wind():
             elif t < self.t_top:
                 true_noise = -self.rng.gumbel(0, self.vel_std_slope)
                 vel = (t-self.t_bottom)*self.slope + self.vel_bottom
+            elif t < self.t_dip_end and t > self.t_dip_start:
+                true_noise = -self.rng.gumbel(0, self.vel_std_dip)
+                vel = self.vel_dip + true_noise
             else:
                 true_noise = -self.rng.gumbel(0, self.vel_std_top)
                 vel = self.vel_top
-            self.wind_vector = np.array([vel + true_noise, 0, 0])
+            vel = max(0, vel + true_noise)
+            self.wind_vector = np.array([vel, 0, 0])
+            self.vel_past += [vel]
 
             # Sensor noise proportional to wind noise plus another small noise
-            sensor_noise = true_noise * self.sensor_filter_ratio + self.rng.normal(0, self.sensor_std)
-            sensor = vel + sensor_noise
-            self.sensor_vector = np.array([sensor, 0, 0])
+            # sensor_noise = true_noise * self.sensor_filter_ratio + self.rng.normal(0, self.sensor_std)
+            # sensor = vel + sensor_noise
+            self.sensor_vector = np.array([max(self.vel_past[-self.sensor_rolling_step:]), 0, 0])
         else:
             raise 'Unknown widn profile!'
     

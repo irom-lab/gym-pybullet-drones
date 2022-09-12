@@ -39,6 +39,7 @@ if __name__ == "__main__":
         physics=physics,
         #
         wind_model=cfg.wind_model,
+        wind_model_args=cfg.wind_model_args,
         wind_profile=cfg.wind_profile,
         wind_profile_args=cfg.wind_profile_args,
         wind_num_frame=cfg.wind_num_frame, 
@@ -79,6 +80,7 @@ if __name__ == "__main__":
         episode_len_sec=cfg.episode_len_sec,
         #
         wind_model=cfg.wind_model,
+        wind_model_args=cfg.wind_model_args,
         wind_profile=cfg.wind_profile,
         wind_profile_args=cfg.wind_profile_args,
         wind_num_frame=cfg.wind_num_frame, 
