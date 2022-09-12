@@ -46,7 +46,7 @@ class Logger(object):
             (num_drones, duration_sec * self.LOGGING_FREQ_HZ))
         #### Note: this is the suggest information to log ##############################
         self.states = np.zeros(
-            (num_drones, 20,
+            (num_drones, 21,
              duration_sec * self.LOGGING_FREQ_HZ))  #### 16 states: pos_x,
         # pos_y,
         # pos_z,
@@ -111,7 +111,7 @@ class Logger(object):
             self.timestamps = np.concatenate(
                 (self.timestamps, np.zeros((self.NUM_DRONES, 1))), axis=1)
             self.states = np.concatenate(
-                (self.states, np.zeros((self.NUM_DRONES, 20, 1))), axis=2)
+                (self.states, np.zeros((self.NUM_DRONES, 21, 1))), axis=2)
             self.controls = np.concatenate(
                 (self.controls, np.zeros((self.NUM_DRONES, 12, 1))), axis=2)
             self.wind_force = np.concatenate(
@@ -124,7 +124,7 @@ class Logger(object):
         self.timestamps[drone, current_counter] = timestamp
         #### Re-order the kinematic obs (of most Aviaries) #########
         self.states[drone, :, current_counter] = np.hstack(
-            [state[0:3], state[10:13], state[7:10], state[13:]])  # last 4 are residual
+            [state[0:3], state[10:13], state[7:10], state[13:]])
         self.controls[drone, :, current_counter] = control
         self.wind_force[drone, :, current_counter] = wind_force
         self.counters[drone] = current_counter + 1
@@ -381,9 +381,13 @@ class Logger(object):
 
         #### Time ##################################################
         row = 9
-        axs[row, col].plot(t, t, label="time")
+        # axs[row, col].plot(t, t, label="time")
+        for j in range(self.NUM_DRONES):
+            axs[row, col].plot(t,
+                               self.states[j, 20, :],
+                               label="drone_" + str(j))
         axs[row, col].set_xlabel('time')
-        axs[row, col].set_ylabel('time')
+        axs[row, col].set_ylabel('wind m/s')
 
         #### Column ################################################
         col = 1

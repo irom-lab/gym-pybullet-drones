@@ -116,6 +116,7 @@ if __name__ == "__main__":
                 raw_obs[0:16],
                 env.residual,
                 env.raw_control,
+                env.wind_vector[0]
             ]),
             control=np.zeros(12),
         )
