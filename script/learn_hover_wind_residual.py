@@ -76,7 +76,8 @@ if __name__ == "__main__":
         init_xy_range=cfg.train_init_xy_range,    # train with randomized init
         init_z_range=cfg.train_init_z_range,
         rate_residual_scale=cfg.rate_residual_scale,
-        thrust_residual_scale=cfg.thrust_residual_scale)
+        thrust_residual_scale=cfg.thrust_residual_scale,
+        rate_max=cfg.rate_max)
     eval_env_kwargs = dict(
         seed=cfg.seed,
         drone_model=DroneModel.X500,
@@ -97,7 +98,8 @@ if __name__ == "__main__":
         init_z_range=cfg.test_init_z_range,
         # fixed_init_pos=[cfg.fixed_init_val],  # add dimension
         rate_residual_scale=cfg.rate_residual_scale,
-        thrust_residual_scale=cfg.thrust_residual_scale)
+        thrust_residual_scale=cfg.thrust_residual_scale,
+        rate_max=cfg.rate_max)
 
     # #### Check the environment's spaces ########################
     env = make_vec_env(WindHoverResidualAviary,
@@ -227,7 +229,8 @@ if __name__ == "__main__":
         init_z_range=cfg.test_init_z_range,
         # fixed_init_pos=[cfg.fixed_init_val],  # add dimension
         rate_residual_scale=cfg.rate_residual_scale,
-        thrust_residual_scale=cfg.thrust_residual_scale
+        thrust_residual_scale=cfg.thrust_residual_scale,
+        rate_max=cfg.rate_max,
     )
     pb_logger = Logger(logging_freq_hz=int(env.SIM_FREQ / env.AGGR_PHY_STEPS),
                        num_drones=1)

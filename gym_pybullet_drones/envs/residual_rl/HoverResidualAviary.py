@@ -35,6 +35,7 @@ class HoverResidualAviary(BaseResidualAviary):
         # residual
         rate_residual_scale=0.1,
         thrust_residual_scale=1.0,
+        rate_max=1,
         **kwargs,
     ):
         """Initialization of a single agent RL environment.
@@ -82,7 +83,8 @@ class HoverResidualAviary(BaseResidualAviary):
                          obs=obs,
                          act=act,
                          rate_residual_scale=rate_residual_scale,
-                         thrust_residual_scale=thrust_residual_scale)
+                         thrust_residual_scale=thrust_residual_scale,
+                         rate_max=rate_max)
         self.TARGET_POS = target_pos
         self.max_dist = 1
 

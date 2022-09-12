@@ -50,6 +50,7 @@ class BaseResidualAviary(BaseAviary):
         # residual
         rate_residual_scale=0.1,
         thrust_residual_scale=1.0,
+        rate_max=1,
     ):
         """Initialization of a generic single agent RL environment.
 
@@ -90,7 +91,9 @@ class BaseResidualAviary(BaseAviary):
         self.thrust_residual_scale = thrust_residual_scale
 
         #### Create integrated controllers #########################
-        self.ctrl = PX4Control(drone_model=drone_model, Ts=Ts)
+        self.ctrl = PX4Control(drone_model=drone_model, 
+                               Ts=Ts,
+                               rateMax=rate_max)
         super().__init__(
             seed=seed,
             drone_model=drone_model,

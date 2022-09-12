@@ -27,7 +27,8 @@ class PX4Control(BaseControl):
     def __init__(self,
                  drone_model: DroneModel,
                  g: float = 9.8,
-                 Ts: float = 1e-2):
+                 Ts: float = 1e-2,
+                 rateMax: float = 1):
         """Common control classes __init__ method.
 
         Parameters
@@ -84,10 +85,11 @@ class PX4Control(BaseControl):
         self.Ts = Ts
 
         self.tiltMax = 50.0 * deg2rad
-        pMax = 220.0 * deg2rad
-        qMax = 220.0 * deg2rad
-        rMax = 200.0 * deg2rad
-        self.rateMax = np.array([pMax, qMax, rMax])
+        # pMax = 220.0 * deg2rad
+        # qMax = 220.0 * deg2rad
+        # rMax = 200.0 * deg2rad
+        # self.rateMax = np.array([pMax, qMax, rMax])
+        self.rateMax = np.ones((3))*rateMax
 
         self.saturateVel_separetely = False
         self.velMax = np.array([5.0, 5.0, 5.0])
@@ -322,7 +324,8 @@ class PX4Control(BaseControl):
                 **2):
             mag = np.linalg.norm(self.thrust_sp[0:2])
             self.thrust_sp[0:2] = thrust_xy_sp / mag * thrust_max_xy
-            print('saturate thrust')
+            print('Saturate thrust!')
+
         # Use tracking Anti-Windup for NE-direction: during saturation, the integrator is used to unsaturate the output
         # see Anti-Reset Windup for PID controllers, L.Rundqwist, 1990
         arw_gain = 2.0 / self.vel_P_gain[0:2]
