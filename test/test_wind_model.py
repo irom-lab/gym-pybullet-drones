@@ -19,6 +19,7 @@ env = WindHoverResidualAviary(
     fixed_init_pos=[[-0.2,0.2,0.9]],
     # wind
     wind_model='aero_drag',
+    wind_model_args={'area': 0.02},
     wind_profile='const',
     wind_profile_args={'wind_vector': np.array([0, 0, 0])},
     # wind_profile='step_rising',

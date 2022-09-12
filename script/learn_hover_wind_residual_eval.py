@@ -46,6 +46,7 @@ if __name__ == "__main__":
         wind_frame_skip=cfg.wind_frame_skip, 
         max_wind=cfg.max_wind,
         wind_obs_freq=cfg.wind_obs_freq,
+        wind_aware=cfg.wind_aware,
         #
         init_xy_range=cfg.test_init_xy_range,    # test with randomized init too
         init_z_range=cfg.test_init_z_range,
@@ -103,7 +104,7 @@ if __name__ == "__main__":
     reward_total = 0
     for i in range(int(cfg.episode_len_sec * env.SIM_FREQ / env.AGGR_PHY_STEPS)):
         action, _states = model.predict(obs, deterministic=True)
-        action = np.array([0.0, 0.0, 0.0, 0.0])
+        # action = np.array([0.0, 0.0, 0.0, 0.0])
 
         obs, reward, done, info = env.step(action, verbose=True)
 
