@@ -6,28 +6,28 @@ plt.rcParams['font.size'] = 12
 rng = np.random.default_rng()
 
 #
-t_bottom_low = 0.3
-t_bottom_high = 0.6
+t_bottom_low = 1
+t_bottom_high = 7
 slope_low = 5
 slope_high = 10
 vel_bottom_low = 0
-vel_bottom_high = 0.5
-vel_top_low = 3
-vel_top_high = 4
+vel_bottom_high = 1
+vel_top_low = 4.5
+vel_top_high = 5.5
 #
 vel_std_bottom = 0.1
 vel_std_slope = 0.2
 vel_std_dip = 0.2
 vel_std_top = 0.4
-sensor_filter_ratio = 0.5
-sensor_std = 0.05
+# sensor_filter_ratio = 0.5
+# sensor_std = 0.05
 # add one dip for each trial
-dip_period_low = 0.3
-dip_period_high = 0.8
-vel_dip_low = 0.5
-vel_dip_high = 1.5
+dip_period_low = 1
+dip_period_high = 2
+vel_dip_low = 0.
+vel_dip_high = 2.5
 
-t_total = 5
+t_total = 10
 freq = 40
 rolling_period = 0.1
 rolling_step = int(rolling_period*freq)
@@ -43,7 +43,7 @@ for trial in range(8):
     t_top = t_bottom + rise_time   
 
     dip_period = rng.random() * (dip_period_high - dip_period_low) + dip_period_low
-    t_dip_start = rng.uniform(t_top, 5)
+    t_dip_start = rng.uniform(t_top, t_total)
     t_dip_end = rng.uniform(t_dip_start, t_dip_start+dip_period)
 
     vel_dip = rng.random() * (vel_dip_high - vel_dip_low) + vel_dip_low

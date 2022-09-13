@@ -308,7 +308,8 @@ class WindHoverResidualAviary(HoverResidualAviary, Wind):
 
         # Reset wind history
         self.wind_frames = deque(maxlen=self.wind_frame_cover)
-        self.wind_frames.appendleft(self.rng.random(3)*0.1) # small random value initially
+        # self.wind_frames.appendleft(self.rng.random(3)*0.1) # small random value initially
+        self.wind_frames.appendleft([self.rng.random()*0.1]) # small random value initially
         # self.wind_frames.appendleft(self.wind_vector)
 
         # Get new obs
@@ -332,8 +333,8 @@ class WindHoverResidualAviary(HoverResidualAviary, Wind):
         ])
         # Add wind frames - use 3-dim wind vector - normalized
         if self.wind_aware:
-            obs_lower_bound = np.hstack((obs_lower_bound, -np.ones(3*self.wind_num_frame)))
-            obs_upper_bound = np.hstack((obs_upper_bound, np.ones(3*self.wind_num_frame)))
+            obs_lower_bound = np.hstack((obs_lower_bound, -np.ones(self.wind_num_frame)))
+            obs_upper_bound = np.hstack((obs_upper_bound, np.ones(self.wind_num_frame)))
         return spaces.Box(low=obs_lower_bound,
                           high=obs_upper_bound,
                           dtype=np.float32)
