@@ -597,11 +597,19 @@ class BaseAviary(gym.Env):
                      init_z_range[0], init_z_range[1], size=(1, 1))),
                 axis=1)
 
-            init_rp_range = np.array([-0.01, 0.01]) * np.pi
+            # init_rp_range = np.array([-0.01, 0.01]) * np.pi
+            # init_rpy = np.random.uniform(init_rp_range[0],
+            #                              init_rp_range[1],
+            #                              size=(2, ))
+            # init_rpy = np.append(init_rpy, 0)[np.newaxis]
+
+            init_rp_range = np.array([-0.03, 0.03]) * np.pi
             init_rpy = np.random.uniform(init_rp_range[0],
                                          init_rp_range[1],
                                          size=(2, ))
-            init_rpy = np.append(init_rpy, 0)[np.newaxis]
+            init_yaw = np.random.uniform(-0.3, 0.3)
+            init_rpy = np.append(init_rpy, init_yaw)[np.newaxis]
+
         #### Initialize/reset counters and zero-valued variables ###
         self.RESET_TIME = time.time()
         self.step_counter = 0

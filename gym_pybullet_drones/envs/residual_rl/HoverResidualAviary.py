@@ -228,7 +228,7 @@ class HoverResidualAviary(BaseResidualAviary):
             normalized_vel_xy, 
             normalized_vel_z,
             normalized_ang_vel
-        ]).reshape(12, )  # no rpms
+        ]).flatten()  # no rpms
 
         return norm_and_clipped
 
@@ -323,7 +323,7 @@ class WindHoverResidualAviary(HoverResidualAviary, Wind):
             -1, -1, -1, 
             -1, -1, -1, 
             -1, -1, -1, 
-        ])  # 16
+        ])
         obs_upper_bound = np.array([
             1, 1, 1, 
             # 1, 1, 1, 1, 
@@ -352,7 +352,6 @@ class WindHoverResidualAviary(HoverResidualAviary, Wind):
                                   self.wind_num_frame, 
                                   self.wind_frame_skip)
             wind_obs = np.clip(wind_obs/self.max_wind, -1, 1)
-            # print(wind_obs)
             return np.concatenate((obs, wind_obs))
         else:
             return obs

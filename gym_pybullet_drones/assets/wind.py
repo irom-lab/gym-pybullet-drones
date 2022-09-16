@@ -141,6 +141,7 @@ class Wind():
             # Sensor noise proportional to wind noise plus another small noise
             # sensor_noise = true_noise * self.sensor_filter_ratio + self.rng.normal(0, self.sensor_std)
             # sensor = vel + sensor_noise
+            # TODO: move this to residual class
             self.sensor_vector = np.array([max(self.vel_past[-self.sensor_rolling_step:]), 0, 0])
         else:
             raise 'Unknown widn profile!'
