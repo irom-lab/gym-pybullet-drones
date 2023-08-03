@@ -1,0 +1,88 @@
+use_wandb: False
+seed: 42
+project: drone-wind
+run: step_rising_9_skip_0
+log_dir: logs/test #logs/step_rising_9_skip_0
+model_type: sac
+device: cuda:2
+num_env: 50
+episode_len_sec: 10 #!
+aggregate_phy_steps: 6 #! 40Hz
+total_timesteps: 20000000
+learning_starts: 10000
+eval_freq: 2000
+n_eval_episodes: 20
+
+# Training
+gamma: 0.99
+learning_rate: 0.0003
+batch_size: 128
+buffer_size: 2000000
+train_freq: 50
+gradient_steps: 300
+ent_coef: 0.003
+net_arch:
+ - 512
+ - 256
+ - 128
+ - 128
+
+# Wind, residual
+wind_model: aero_drag
+wind_model_args:
+  area: 0.06  #!
+wind_profile: step_rising
+wind_profile_args:
+  t_bottom_low: 1
+  t_bottom_high: 5
+  slope_low: 5
+  slope_high: 10
+  vel_bottom_low: 0
+  vel_bottom_high: 1
+  vel_top_low: 3
+  vel_top_high: 6
+  #
+  vel_std_bottom: 0.1
+  vel_std_slope: 0.2
+  vel_std_top: 0.4
+  # sensor_filter_ratio: 0.333
+  # sensor_std: 0.1
+  #
+  vel_std_dip: 0.2
+  dip_period_low: 2
+  dip_period_high: 5
+  vel_dip_low: 0
+  vel_dip_high: 3
+  sensor_rolling_step: 4  #! 0.1s
+wind_num_frame: 5 #!
+wind_frame_skip: 5 #! 0.5s
+max_wind: 5
+wind_obs_freq: 40
+wind_aware: True
+rate_residual_scale: 0.3
+thrust_residual_scale: 1 # ~5% of body weight
+rate_max: 0.1 #!
+
+# Init states
+train_init_xy_range:
+  - -0.3
+  - 0.3
+train_init_z_range:
+  - 0.8
+  - 1.2
+test_init_xy_range:
+  - -0.1
+  - 0.1
+test_init_z_range:
+  - 0.9
+  - 1.1
+# fixed_init_val:
+#   - 0
+#   - 0
+#   - 1
+
+# fixed_init_train = [[0, 0, 1]]
+
+# # PPO
+# n_steps = 1024  # buffer size=n_steps * n_envs
+# clip_range = 0.1

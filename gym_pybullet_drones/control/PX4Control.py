@@ -18,8 +18,11 @@ def vectNormalize(q):
 
 
 class PX4Control(BaseControl):
-    """Based on https://github.com/bobzwik/Quadcopter_SimCon/blob/master/Simulation/ctrl.py#L278, which implements the PX4 controller in Python
-
+    """ PX4 controller implementation in Python
+        Based on https://github.com/bobzwik/Quadcopter_SimCon/blob/master/Simulation/ctrl.py
+        original author: John Bass
+        email: john.bobzwik@gmail.com
+        license: MIT
     """
 
     ############################################################################
