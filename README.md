@@ -2,7 +2,7 @@ This repository is a fork of [utiasDSL/gym-pybullet-drones](https://github.com/u
 
 We contribute the following:
 - A Wind class that defines wind (gust) behavior and models blade flapping and aerodynamic drag effects: [wind.py](https://github.com/irom-lab/gym-pybullet-drones/blob/train/gym_pybullet_drones/assets/wind.py),
-- An instantiation of the popular open-source PX4 controller in Python based on [bobzwik](https://github.com/bobzwik/Quadcopter_SimCon/blob/master/Simulation/ctrl.py)'s,
+- An instantiation of the popular open-source PX4 controller: [PX4Control.py](https://github.com/irom-lab/gym-pybullet-drones/blob/train/gym_pybullet_drones/control/PX4Control.py) (Based on original code by [bobzwik](https://github.com/bobzwik/Quadcopter_SimCon/blob/master/Simulation/ctrl.py)),
 - A framework for learning a residual input on top fo the PX4 controller.
 
 ## Installation
