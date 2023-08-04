@@ -5,13 +5,24 @@ We contribute the following:
 - An instantiation of the popular open-source PX4 controller in Python based on [bobzwik](https://github.com/bobzwik/Quadcopter_SimCon/blob/master/Simulation/ctrl.py)'s,
 - A framework for learning a residual input on top fo the PX4 controller.
 
-# Training in Windy Conditions
+## Installation
 
-The main training script is [learn_hover_wind_residual.py](https://github.com/irom-lab/gym-pybullet-drones/blob/train/script/learn_hover_wind_residual.py).
+`requirements.txt` has been modified to include additional dependencies which are needed for learning the residual policy. These can be installed with:
 
-A `cfg.yml` file in `scripts` provies the training parameters.
+```
+pip3 install -e .
+```
 
-Make sure to change the `log_dir` in `cfg.yml` to your desired location, and to create the logging directory.
+## Training in Windy Conditions
+
+The main training script is [scripts/learn_hover_wind_residual.py](https://github.com/irom-lab/gym-pybullet-drones/blob/train/script/learn_hover_wind_residual.py).
+
+A `cfg.yml` file in `scripts` provies the training parameters; make sure to update `cfg.yml` to your specifications. (Including making the `log_dir` in `cfg.yml`)
+
+To begin the training process, run the following:
+```
+~/gym-pybullet-drones$ python3 script/learn_hover_wind_residual.py -cf cfg.yaml 
+```
 
 ### Citation
 Make sure to cite the original work behind [utiasDSL/gym-pybullet-drones](https://github.com/utiasDSL/gym-pybullet-drones).
@@ -37,10 +48,4 @@ If you make use of this fork and the added wind functionality, you can additiona
   year={2023},
   organization={IEEE}
 }
-```
-
-
-### Miscellaneous
-```
-export PYTHONPATH=/home/allen/bullet3/build_cmake/examples/pybullet
 ```

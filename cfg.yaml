@@ -2,9 +2,9 @@ use_wandb: False
 seed: 42
 project: drone-wind
 run: step_rising_9_skip_0
-log_dir: logs/test #logs/step_rising_9_skip_0
+log_dir: logs/test # change to your desired logging location
 model_type: sac
-device: cuda:2
+device: cuda:0 # change to your device
 num_env: 50
 episode_len_sec: 10 #!
 aggregate_phy_steps: 6 #! 40Hz

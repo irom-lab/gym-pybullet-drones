@@ -1,6 +1,10 @@
 from setuptools import setup
 
+with open('requirements.txt') as f:
+    required_packages = f.read().splitlines()
+
 setup(name='gym_pybullet_drones',
     version='0.6.0',
-    install_requires=['numpy', 'Pillow', 'matplotlib', 'cycler', 'gym', 'pybullet', 'stable_baselines3', 'ray[rllib]', 'wandb', 'omegaconf']
+    packages=['logs', 'wandb', 'files', 'script', 'experiments', 'gym_pybullet_drones'],
+    install_requires=required_packages,
 )
